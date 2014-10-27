@@ -14,7 +14,7 @@ import ConfigParser
 import itertools
 import argparse
 from collections import defaultdict
-from pyrnatools.utilities import gfold, deseq2
+from pyrnatools.tools import gfold, deseq2
 from multiprocessing import Pool
 import pysam
 
@@ -55,7 +55,7 @@ def create_design_for_R(idict):
 		output.write("{}\t{}\t{}\n".format(name, count, idict[key]))
 	output.close()
 
-def ConfigSectionMap(section):
+def ConfigSectionMap(section, Config):
 	dict1 = {}
 	options = Config.options(section)
 	for option in options:
@@ -118,8 +118,8 @@ def main():
 		Config.read(args["config"])
 
 		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions")
-		comparisons = ConfigSectionMap("Comparisons")
+		conditions = ConfigSectionMap("Conditions", Config)
+		comparisons = ConfigSectionMap("Comparisons", Config)
 
 		if args["alt"]:
 			for comp in comparisons:

@@ -1,12 +1,12 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='pyrnatools',
       version='0.0.1',
       description='pyrnatools is a Python module to analyze ChIP-seq NGS data',
       author='Patrick Lombard',
       author_email='ptk.lmb55@gmail.com',
-      packages=['pyrnatools'],
+      packages=find_packages(),
       package_data={"pyrnatools":['data/*']},
       scripts=['scripts/pyrna_align.py', 'scripts/pyrna_denovo.py', 'scripts/pyrna_diff_exp.py', 'scripts/pyrna_diff_summary.py', 'scripts/pyrna_htseq_to_gfold.py',
         'scripts/pyrna_insert_size.py', 'scripts/pyrna_select_sigs.py', 'scripts/pyrna_viz.py'],
