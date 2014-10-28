@@ -20,8 +20,4 @@ This will install the scripts in the pyrnatools/scripts directory. For more info
 
 ##Additional Tools
  - pyrna_insert_size.py -> Calculates insert size for paired end RNA-seq data
- - pyrna_diff_summary.py -> Simple script that takes a counts matrix and a directory of DESEQ2/GFOLD results and create a summary matrix
- - pyrna_select_sigs.py -> Takes pyrna_diff_summary.py and prints out significant genes
  - pyrna_denovo.py -> Cufflinks wrapper for denovo assembly
- - pyrna_htseq_to_gfold.py -> Take a HTseq-count output and converts it to GFOLD formatted counts file
- 
