@@ -1,3 +1,4 @@
 recursive-include pyrnatools *.py
+recursive-include pyrnatools/tools *.py
 recursive-include pyrnatools/data *.sizes
 recursive-include pyrnatools/data *.meme

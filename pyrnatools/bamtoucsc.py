@@ -14,6 +14,7 @@ import argparse
 import pyrnatools
 import pysam
 import pybedtools
+import pkg_resources
 
 def convert_bam_bed(name):
 	count = 0
@@ -94,8 +95,7 @@ def main():
 	parser.add_argument('-ens', action='store_true', help='If samples are aligned to ensembl genome, convert to UCSC coordinates', required=False) 
 	args = vars(parser.parse_args())
 
-	path = os.path.dirname(rnaseq_toolkit.__file__)
-	chrom = pkg_resources.resource_filename('pychiptools', 'data/{}.chrom.sizes'.format(args["genome"]))
+	chrom = pkg_resources.resource_filename('pyrnatools', 'data/{}.chrom.sizes'.format(args["genome"]))
 	if not os.path.isfile(chrom):
 		raise Exception("Unsupported Genome!")
 	

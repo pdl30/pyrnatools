@@ -85,9 +85,9 @@ def main():
 	parser.add_argument('-f', '--fastq', help='Single end fastq', required=False)
 	parser.add_argument('-p', '--pair', help='Paired end fastqs. Please put them in order!', required=False, nargs='+')
 	parser.add_argument('-i', '--index', help='Genome Index', required=True)
-	parser.add_argument('-g', '--gtf', help='GTF file', required=True)#
-	parser.add_argument('-a', '--insert', help='Insert size for paried end', default=50, required=False)
-	parser.add_argument('-b', '--sd', help='Insert size SD for paried end', default=20, required=False)
+	parser.add_argument('-g', '--gtf', help='GTF file', required=True)
+	parser.add_argument('-a', '--insert', help='Insert size for paried end, default=50', default=50, required=False)
+	parser.add_argument('-b', '--sd', help='Insert size SD for paried end, default=20', default=20, required=False)
 	parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
 	#parser.add_argument('-aligner',, help='Which aligner to use, options are Tophat/Star, default is Tophat [STAR not implemented yet]', required=False, default="Tophat")
 	parser.add_argument('-o', '--out', help='Name of results directory', required=True)
