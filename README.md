@@ -14,8 +14,9 @@ This will install the scripts in the pyrnatools/scripts directory. For more info
 
 ##Core Pipeline
 
- - pyrna_align.py -> Wrapper for FASTQC, cutadapt and tophat2 sequence aligner. 
- - pyrna_diff_exp.py -> Wrapper for Htseq-count and deseq2/gfold differential expression analysis
+ - pyrna_align.py -> Wrapper for FASTQC, cutadapt and tophat2 sequence aligner
+ - pyrna_count.py -> Wrapper for Htseq-count and gfold-count
+ - pyrna_diff.py -> Wrapper for deseq2/gfold differential expression analysis
  - pyrna_viz.py -> Converts bam file to UCSC formatted bigWig
 
 ##Additional Tools
