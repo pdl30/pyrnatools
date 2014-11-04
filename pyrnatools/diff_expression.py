@@ -60,8 +60,9 @@ def main():
 	deseq2_parser = subparsers.add_parser('deseq2', help="Runs DESEQ2")
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD")
 	count_parser = subparsers.add_parser('count', help="Prints Counts from DESEQ")
-	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
-	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
+	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
+	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
+	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
 	deseq2_parser.add_argument('-p','--padj', help='Option for DESEQ2', default=0.05, required=False)
 	gfold_parser.add_argument('-a','--alt', help='Use HTseq counts faked files. Assumes normalisation is already in place. Requires a standard file extension.', required=False)
 	count_parser.add_argument('-i','--input', help='Combined counts file',required=True)
@@ -86,7 +87,7 @@ def main():
 			for comp in comparisons:
 				c = comparisons[comp].split(",")
 				comps = [x.strip(' ') for x in c]
-				gfold.run_gfold_diff(conditions, comps[0], comps[1], alt=args["alt"])
+				gfold.run_gfold_diff(args["input"], conditions, comps[0], comps[1], alt=args["alt"])
 		else:
 			for comp in comparisons:
 				c = comparisons[comp].split(",")
@@ -103,12 +104,12 @@ def main():
 		Config.read(args["config"])
 
 		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions")
-		comparisons = ConfigSectionMap("Comparisons")
+		conditions = ConfigSectionMap("Conditions", Config)
+		comparisons = ConfigSectionMap("Comparisons", Config)
 
 		create_design_for_R(conditions)
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
-			rscript = deseq2.write_deseq(conditions, comps[0], comps[1], args["padj"]) ##Needs changing!!!
+			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"]) ##Needs changing!!!
 			run_rcode(rscript, "deseq2_rcode.R")

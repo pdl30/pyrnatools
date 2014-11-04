@@ -68,8 +68,8 @@ def main():
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
 	deseq2_parser = subparsers.add_parser('htseq', help="Runs DESEQ2")
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD Count")
-	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
-	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
+	deseq2_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
+	gfold_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
 	deseq2_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-n',action='store_true', help='Gapdh Normlisation', required=False)
@@ -85,19 +85,17 @@ def main():
 
 		#Read design matrix and create list of conditions and directories
 		conditions = ConfigSectionMap("Conditions", Config)
-		comparisons = ConfigSectionMap("Comparisons", Config)
 		pool = Pool(int(args["threads"]))
 		pool.map(run_gfold_count, itertools.izip(list(conditions.keys()),itertools.repeat(conditions), itertools.repeat(args["gtf"]))) ##Running annotation in parallel
 		pool.close()
 		pool.join()
-	elif args["subparser_name"] == "deseq2":
+	elif args["subparser_name"] == "htseq":
 		Config = ConfigParser.ConfigParser()
 		Config.optionxform = str
-		Config.read(args["CONFIG"])
+		Config.read(args["config"])
 
 		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions")
-		comparisons = ConfigSectionMap("Comparisons")
+		conditions = ConfigSectionMap("Conditions", Config)
 
 		pool = Pool(int(args["threads"]))
 		pool.map(anno_function, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]), itertools.repeat(args["stranded"]))) ##Running annotation in parallel

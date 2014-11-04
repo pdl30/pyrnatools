@@ -15,12 +15,12 @@ import itertools
 import argparse
 from collections import defaultdict
 
-def write_deseq(sample_dict, cond1, cond2, padj):
+def write_deseq(ifile, sample_dict, cond1, cond2, padj):
 	print "==> Running differental expression analysis...\n"
 	rscript =  "library(DESeq2)\n"
 	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
 	#Make sure they match!
-	rscript += "counts <- read.table('combined_counts.tsv', sep='\\t', header=T, row.names=1)\n"
+	rscript += "counts <- read.table('{}', sep='\\t', header=T, row.names=1)\n".format(ifile)
 	rscript += "rnaseq_dds <- DESeqDataSetFromMatrix(countData = counts, colData = data.frame(pdata), design = ~ condition)\n"
 	rscript += "rnaseq_dds$condition <- factor(rnaseq_dds$condition, levels=unique(pdata[,3]))\n"
 	rscript += "rnaseq_dds <- DESeq(rnaseq_dds)\n"
