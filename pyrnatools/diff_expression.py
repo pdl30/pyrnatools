@@ -60,6 +60,7 @@ def main():
 	deseq2_parser = subparsers.add_parser('deseq2', help="Runs DESEQ2")
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD")
 	count_parser = subparsers.add_parser('count', help="Prints Counts from DESEQ")
+	count_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
@@ -67,22 +68,21 @@ def main():
 	gfold_parser.add_argument('-a','--alt', help='Use HTseq counts faked files. Assumes normalisation is already in place. Requires a standard file extension.', required=False)
 	count_parser.add_argument('-i','--input', help='Combined counts file',required=True)
 	args = vars(parser.parse_args())
-	conditions = []
-	sample_dict = {}
-	count_id = 0
+
+	Config = ConfigParser.ConfigParser()
+	Config.optionxform = str
+	Config.read(args["config"])
+
+	#Read design matrix and create list of conditions and directories
+	conditions = ConfigSectionMap("Conditions", Config)
 	
+
 	if args["subparser_name"] == "count":
+		create_design_for_R(conditions)
 		rscript = deseq2.print_norm_counts(args["input"])
 		run_rcode(rscript, "get_counts.R")
 	if args["subparser_name"] == "gfold":
-		Config = ConfigParser.ConfigParser()
-		Config.optionxform = str
-		Config.read(args["config"])
-
-		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions", Config)
 		comparisons = ConfigSectionMap("Comparisons", Config)
-
 		if args["alt"]:
 			for comp in comparisons:
 				c = comparisons[comp].split(",")
@@ -99,15 +99,8 @@ def main():
 					gfold.run_gfold_diff(conditions, comps[0], comps[1])
 
 	if args["subparser_name"] == "deseq2":
-		Config = ConfigParser.ConfigParser()
-		Config.optionxform = str
-		Config.read(args["config"])
-
-		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions", Config)
-		comparisons = ConfigSectionMap("Comparisons", Config)
-
 		create_design_for_R(conditions)
+		comparisons = ConfigSectionMap("Comparisons", Config)
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
