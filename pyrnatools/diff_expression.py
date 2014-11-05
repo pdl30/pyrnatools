@@ -104,5 +104,5 @@ def main():
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
-			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"]) ##Needs changing!!!
+			rscript = deseq2.write_deseq(conditions, comps[0], comps[1], args["padj"]) ##Needs changing!!!
 			run_rcode(rscript, "deseq2_rcode.R")
