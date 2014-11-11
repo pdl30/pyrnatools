@@ -13,7 +13,6 @@ import sys, re, os
 import ConfigParser
 import itertools
 import argparse
-from collections import defaultdict
 
 def write_deseq(ifile, sample_dict, cond1, cond2, padj):
 	print "==> Running differental expression analysis...\n"

@@ -58,17 +58,13 @@ def main():
 	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
 	deseq2_parser = subparsers.add_parser('deseq2', help="Runs DESEQ2")
-	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD")
-	count_parser = subparsers.add_parser('count', help="Prints Counts from DESEQ")
-	count_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
+	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD. Use if you have no replicates!")
 	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
 	deseq2_parser.add_argument('-p','--padj', help='Option for DESEQ2', default=0.05, required=False)
 	gfold_parser.add_argument('-a','--alt', help='Use HTseq counts faked files. Assumes normalisation is already in place. Requires a standard file extension.', required=False)
-	count_parser.add_argument('-i','--input', help='Combined counts file',required=True)
 	args = vars(parser.parse_args())
-
 	Config = ConfigParser.ConfigParser()
 	Config.optionxform = str
 	Config.read(args["config"])
@@ -76,11 +72,6 @@ def main():
 	#Read design matrix and create list of conditions and directories
 	conditions = ConfigSectionMap("Conditions", Config)
 	
-
-	if args["subparser_name"] == "count":
-		create_design_for_R(conditions)
-		rscript = deseq2.print_norm_counts(args["input"])
-		run_rcode(rscript, "get_counts.R")
 	if args["subparser_name"] == "gfold":
 		comparisons = ConfigSectionMap("Comparisons", Config)
 		if args["alt"]:
