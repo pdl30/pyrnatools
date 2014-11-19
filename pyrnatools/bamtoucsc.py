@@ -62,7 +62,7 @@ def change_ens_ucsc_for_bed(name):
 			outbed2.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(new_chr, word[1], word[2], word[3], word[4], word[5])),
 
 ##Must include scaling!
-def genomeCoverage(name, house, rpm):
+def genomeCoverage(name, house=None, rpm=None):
 	print "==> Converting bed to bedGraph...\n"
 	inbed = pybedtools.BedTool(name+".BED")
 	if house:
