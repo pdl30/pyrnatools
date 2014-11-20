@@ -77,7 +77,7 @@ def genomeCoverage(name, house=None, rpm=None):
 	outcov.saveas(output)
 	return output
 
-def bedgraphtobigwig(bedgraph, chrom, house, rpm):
+def bedgraphtobigwig(bedgraph, chrom):
 	bw = re.sub(".bedGraph$", ".bw", bedgraph)
 	print "==> Converting bedGraph to bigWig...\n"
 	command = ["bedGraphToBigWig", bedgraph, chrom, bw]
