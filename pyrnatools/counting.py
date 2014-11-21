@@ -24,9 +24,9 @@ def annotate_sam(bam_file, gtf_file, stranded):
 	command = ["htseq-count", "--mode=union", "--stranded={}".format(stranded), "--quiet", "-f", "bam", bam_file,  gtf_file]
 	subprocess.call(command, stdout=htout)
 
-def join_counts(idict):
+def join_counts(idict, outfile):
 	data = defaultdict(list)
-	output = open("combined_counts.tsv", "w")
+	output = open(outfile, "w")
 	output.write("ID"),
 	for bam in sorted(idict):
 		name = re.sub(".bam$", "", bam) 
@@ -64,18 +64,19 @@ def ConfigSectionMap(section, Config):
 	return dict1
 
 def main():
-	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
+	parser = argparse.ArgumentParser(description='Counts features from BAM files\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
-	deseq2_parser = subparsers.add_parser('htseq', help="Runs DESEQ2")
+	htseq_parser = subparsers.add_parser('htseq', help="Runs HTseq count")
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD Count")
-	deseq2_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
+	htseq_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
 	gfold_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
-	deseq2_parser.add_argument('-g','--gtf', help='GTF file', required=False)
+	htseq_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-n',action='store_true', help='Gapdh Normlisation', required=False)
-	deseq2_parser.add_argument('-s','--stranded', help='Option for HTSeq', default="yes", required=False)
-	deseq2_parser.add_argument('-t','--threads', help='Number of threads', default=8, required=False)
-	gfold_parser.add_argument('-t','--threads', help='Number of threads', default=8, required=False)
+	htseq_parser.add_argument('-s','--stranded', help='Option for HTSeq', default="yes", required=False)
+	htseq_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
+	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
+	htseq_parser.add_argument('-o','--outfile', help='Output counts file', required=False)
 	args = vars(parser.parse_args())
 
 	if args["subparser_name"] == "gfold":
@@ -101,4 +102,4 @@ def main():
 		pool.map(anno_function, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]), itertools.repeat(args["stranded"]))) ##Running annotation in parallel
 		pool.close()
 		pool.join()	
-		join_counts(conditions)
+		join_counts(conditions, args["outfile"])
