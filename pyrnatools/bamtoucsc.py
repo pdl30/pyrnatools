@@ -62,13 +62,10 @@ def change_ens_ucsc_for_bed(name):
 			outbed2.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(new_chr, word[1], word[2], word[3], word[4], word[5])),
 
 ##Must include scaling!
-def genomeCoverage(name, house=None, rpm=None):
+def genomeCoverage(name, house=None, rpm=None, cov=None):
 	print "==> Converting bed to bedGraph...\n"
 	inbed = pybedtools.BedTool(name+".BED")
-	if house:
-		outcov = inbed.genome_coverage(bg=True, genome='mm10', scale=house)
-		output = name+"_house.bedGraph"
-	elif rpm:
+	if rpm:
 		outcov = inbed.genome_coverage(bg=True, genome='mm10', scale=rpm)
 		output = name+"_rpm.bedGraph"
 	else:
@@ -83,24 +80,12 @@ def bedgraphtobigwig(bedgraph, chrom):
 	command = ["bedGraphToBigWig", bedgraph, chrom, bw]
 	subprocess.call(command)
 
-def normalise_to_housekeeper(count_file):
-	print "==> Normalising to Housekeeper...\n"
-	with open(count_file) as f:
-		for line in f:
-			line = line.rstrip()
-			word = line.split("\t")
-			if word[0] == "ENSMUSG00000057666":
-				housekeeper = int(word[1])	
-		print housekeeper
-	return housekeeper
-
 def main():
 	parser = argparse.ArgumentParser(description="Processes RNA-seq samples to bigWig tracks.\nIf Tophat2 is specified, this will pull out the uniquely mapped reads\nOtherwiseit is assumed that the bam file is already uniquely mapped!")
 	parser.add_argument('-i', '--input', help='Bam file from aligner etc.', required=True)
 	parser.add_argument('-p', action='store_true', help='Use if samples are paired end.', required=False)
 	parser.add_argument('-g', '--genome', help='Genome the samples are aligned to, options include mm10/mm9/hg19', required=True)
 	parser.add_argument('-rpm', action='store_true', help='Scale to RPM', required=False) 
-	parser.add_argument('-a', '--house', help='Housekeeper normalisation. Input file is HTSEQ-count file containing gene for normalisation on first line', required=False)
 	parser.add_argument('-ens', action='store_true', help='If samples are aligned to ensembl genome, convert to UCSC coordinates', required=False) 
 	args = vars(parser.parse_args())
 
@@ -119,10 +104,6 @@ def main():
 	if args["rpm"]:
 		scale = float(1000000)/int(unique_reads)
 		bedgraph = genomeCoverage(name, rpm=scale)	
-	elif args["house"]:
-		house = normalise_to_housekeeper(args["house"])
-		scale = float(1000)/int(house) #Works and checked
-		bedgraph = genomeCoverage(name, house=scale)
 	else:
 		bedgraph = genomeCoverage(name)
 	
