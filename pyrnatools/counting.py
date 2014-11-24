@@ -77,6 +77,9 @@ def main():
 	htseq_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
 	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
 	htseq_parser.add_argument('-o','--outfile', help='Output counts file', required=False)
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(1)
 	args = vars(parser.parse_args())
 
 	if args["subparser_name"] == "gfold":

@@ -91,6 +91,9 @@ def main():
 	parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
 	#parser.add_argument('-aligner',, help='Which aligner to use, options are Tophat/Star, default is Tophat [STAR not implemented yet]', required=False, default="Tophat")
 	parser.add_argument('-o', '--out', help='Name of results directory', required=True)
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(1)
 	args = vars(parser.parse_args())
 	path = os.getcwd()
 	

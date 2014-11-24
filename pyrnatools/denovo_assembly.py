@@ -55,6 +55,9 @@ def main():
 	parser.add_argument('-f','--fasta', help='Reference Fasta', required=True)
 	parser.add_argument('-t','--threads', help='Number of threads', default=4, required=False)
 	parser.add_argument('-o','--outdir', help='Output directory for merged transcripts', required=False)
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(1)
 	args = vars(parser.parse_args())
 	Config = ConfigParser.ConfigParser()
 	Config.optionxform = str

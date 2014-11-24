@@ -55,5 +55,8 @@ def main():
 	parser = argparse.ArgumentParser(description='Calculates insert size for paired end data\n ')
 	parser.add_argument('-p', '--pair', help='Paired end fastqs. Please put them in order!', required=False, nargs='+')
 	parser.add_argument('-i', '--index', help='Bowtie1 Index', required=True)
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(1)
 	args = vars(parser.parse_args())
 	calc_insert(args["pair"][0], args["pair"][1], args["index"])
