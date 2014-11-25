@@ -11,7 +11,7 @@
 import subprocess
 import re
 import argparse
-import os
+import os, sys
 
 def run_fastqc(fq1):
 	command = ["fastqc", "{}".format(fq1)] #outdir must exist!
