@@ -79,11 +79,10 @@ def main():
 	if not os.path.isdir("tmp"):
 		os.mkdir("tmp/")
 	conditions = ConfigSectionMap("Conditions", Config)
+
 	pool = Pool(int(args["threads"]))
-	
 	pool.map(download_function, itertools.izip(list(conditions.keys())))
 	pool.close()
 	pool.join()	
 	shutil.rmtree('tmp/')
 	
-main()
