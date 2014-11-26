@@ -14,6 +14,7 @@ import subprocess
 import ConfigParser
 from multiprocessing import Pool, Manager
 import itertools
+import shutil
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}
@@ -30,8 +31,8 @@ def ConfigSectionMap(section, Config):
 
 def downloader(gsm):
 	old_path = os.getcwd()
-#	download2 = "wget -c -nv -q 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='{0}'&targ=self&view=quick&form=text&token=_blank' -O tmp/{0}.soft".format(gsm)
-	#subprocess.call(download2, shell=True)
+	download2 = "wget -c -nv -q 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='{0}'&targ=self&view=quick&form=text&token=_blank' -O tmp/{0}.soft".format(gsm)
+	subprocess.call(download2, shell=True)
 	if not os.path.isdir(gsm):
 		os.mkdir(gsm)
 	f = open("tmp/{}.soft".format(gsm), "r")
@@ -58,7 +59,6 @@ def downloader(gsm):
 	for fq in fqs:
 		command += " {}".format(fq)
 	command += " > {}.fastq".format(gsm)
-	print command
 	subprocess.call(command, shell=True)
 	os.chdir(old_path)
 
@@ -66,9 +66,12 @@ def download_function(args):
 	return downloader(*args)
 
 def main():
-	parser = argparse.ArgumentParser(description='Various clustering for RNA-seq experiments using DESEQ2 counts\n')
-	parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
-	parser.add_argument('-t','--threads', help='Number of threads', default=20, required=False)
+	parser = argparse.ArgumentParser(description='Given a config file with GSMs on first column, this will download SRA files from GEO and convert them to FASTQ\n')
+	parser.add_argument('-c','--config', help='Config file containing parameters, requires [Conditions] with GSMs as keys', required=True)
+	parser.add_argument('-t','--threads', help='Number of threads, default=20', default=20, required=False)
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(1)
 	args = vars(parser.parse_args())
 	Config = ConfigParser.ConfigParser()
 	Config.optionxform = str
@@ -81,5 +84,6 @@ def main():
 	pool.map(download_function, itertools.izip(list(conditions.keys())))
 	pool.close()
 	pool.join()	
+	shutil.rmtree('tmp/')
 	
 main()
