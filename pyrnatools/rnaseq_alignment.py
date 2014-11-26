@@ -19,7 +19,8 @@ def run_fastqc(fq1):
 
 def find_adapters(fq):
 	adapters = []
-	report = fq+"_fastqc/fastqc_data.txt"
+	name = re.sub(".fastq", "", fq)
+	report = name+"_fastqc/fastqc_data.txt"
 	flist = open(report).readlines()
 	parsing = False
 	for line in flist:
@@ -75,7 +76,7 @@ def paired_tophat(fastq1, fastq2, index, gtf, outdir, insert, sd, threads):
 def single_tophat(fastq, index, gtf, outdir, threads):
 	report = outdir+'/'+'tophat_report.txt'
 	report1_o = open(report, "wb")
-	uniq = "tophat2 --GTF {0} -p {5} -o {1} {2} {3}".format(gtf, outdir, index, fastq, threads)
+	uniq = "tophat2 --GTF {0} -p {4} -o {1} {2} {3}".format(gtf, outdir, index, fastq, threads)
 	p = subprocess.Popen(uniq.split(), stderr=report1_o)
 	p.communicate()
 
