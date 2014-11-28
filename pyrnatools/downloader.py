@@ -54,7 +54,7 @@ def downloader(gsm):
 		command0 = "fastq-dump --split-3 {}".format(sra)
 		subprocess.call(command0, shell=True)
 		os.remove(sra)
-	fqs = [f for f in os.listdir(new_path) if f.endswith(".fastq")]
+	fqs = [f for f in os.listdir(new_path) if f.startswith("SRR") and f.endswith(".fastq")]
 	command = "cat"
 	for fq in fqs:
 		command += " {}".format(fq)
