@@ -54,12 +54,27 @@ def downloader(gsm):
 		command0 = "fastq-dump --split-3 {}".format(sra)
 		subprocess.call(command0, shell=True)
 		os.remove(sra)
-	fqs = [f for f in os.listdir(new_path) if f.startswith("SRR") and f.endswith(".fastq")]
-	command = "cat"
-	for fq in fqs:
-		command += " {}".format(fq)
-	command += " > {}.fastq".format(gsm)
-	subprocess.call(command, shell=True)
+	#Catting everything together
+	fq1s = [f for f in os.listdir(new_path) if f.startswith("SRR") and f.endswith("_1.fastq")]
+	if fqs:
+		command = "cat"
+		for fq in fqs:
+			command += " {}".format(fq)
+		command += " > {}_1.fastq".format(gsm)
+		subprocess.call(command, shell=True)
+		fq1s = [f for f in os.listdir(new_path) if f.startswith("SRR") and f.endswith("_2.fastq")]
+		command = "cat"
+		for fq in fqs:
+			command += " {}".format(fq)
+		command += " > {}_2.fastq".format(gsm)
+		subprocess.call(command, shell=True)
+	else:
+		fq1s = [f for f in os.listdir(new_path) if f.startswith("SRR") and f.endswith(".fastq")]
+		command = "cat"
+		for fq in fqs:
+			command += " {}".format(fq)
+		command += " > {}.fastq".format(gsm)
+		subprocess.call(command, shell=True)
 	#Remove old SRR fastqs
 	for fq in fqs:
 		os.remove(fq)
