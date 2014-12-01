@@ -15,6 +15,7 @@ import ConfigParser
 from multiprocessing import Pool, Manager
 import itertools
 import shutil
+from collections import defaultdict
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}
@@ -28,6 +29,19 @@ def ConfigSectionMap(section, Config):
 			print("exception on %s!" % option)
 			dict1[option] = None
 	return dict1
+
+def gse_download(gse):
+	gsm_samples = defaultdict(list)
+	download2 = "wget -c -nv -q 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='{0}'&targ=self&view=quick&form=text&token=_blank' -O tmp/{0}.soft".format(gsm)
+	subprocess.call(download2, shell=True)
+	with open("tmp/{}.soft".format(gse)) as f:
+		for line in f:
+			line  = line.rstrip()
+			#GSM Samples
+			if line.startswith("!Series_sample_id = "):
+				gsm = re.sub("!Series_sample_id = ", "", line)
+				gsm_samples.append(gsm)
+	return gsm_samples
 
 def downloader(gsm):
 	old_path = os.getcwd()
@@ -85,8 +99,8 @@ def download_function(args):
 
 def main():
 	parser = argparse.ArgumentParser(description='Downloads data from GEO and Arrayexpress\n')
-
-	parser.add_argument('-c','--config', help='Input ConfigParser file containing [Conditions] with GSMs as keys', required=True)
+	parser.add_argument('-g','--GSE', help='GSE accession', required=False)
+	parser.add_argument('-c','--config', help='Input ConfigParser file containing [Conditions] with GSMs as keys', required=False)
 	parser.add_argument('-t','--threads', help='Number of threads, default=20', default=20, required=False)
 
 	if len(sys.argv)==1:
@@ -94,13 +108,17 @@ def main():
 		sys.exit(1)
 	args = vars(parser.parse_args())
 
-	
-	Config = ConfigParser.ConfigParser()
-	Config.optionxform = str
-	Config.read(args["config"])
 	if not os.path.isdir("tmp"):
 		os.mkdir("tmp/")
-	conditions = ConfigSectionMap("Conditions", Config)
+	
+	if args["GSE"]:
+		conditions = gse_download(args["GSE"])
+	elif args["config"]:
+		Config = ConfigParser.ConfigParser()
+		Config.optionxform = str
+		Config.read(args["config"])
+		conditions = ConfigSectionMap("Conditions", Config)
+		
 	pool = Pool(int(args["threads"]))
 	pool.map(download_function, itertools.izip(list(conditions.keys())))
 	pool.close()
