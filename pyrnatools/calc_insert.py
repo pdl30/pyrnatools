@@ -26,11 +26,14 @@ def head(ifile, ofile):
 	output.close()
 	return len(list(bases))
 		
-def calc_insert(fq1, fq2, index):
+def calc_insert(fq1, fq2, index, fq):
 	f = open('/dev/null', 'w')
-	name = re.sub("_1.fq", "", fq1)
-	read_size = head("{}_1.fq".format(name), "{0}_trun1.fq".format(name))
-	head("{}_2.fq".format(name), "{0}_trun2.fq".format(name))
+	if fq:
+		name = re.sub("_1.fq", "", fq1)
+	else:
+		name = re.sub("_1.fastq", "", fq1)
+	read_size = head(fq1, "{0}_trun1.fq".format(name))
+	head(fq2, "{0}_trun2.fq".format(name))
 	c3 = "bowtie --sam -I 0 -X 500 {0} -1 {1}_trun1.fq -2 {1}_trun2.fq > {1}_trun.sam".format(index, name)
 	subprocess.call(c3, shell=True, stderr=f)
 	os.remove("{0}_trun1.fq".format(name))
@@ -59,4 +62,7 @@ def main():
 		parser.print_help()
 		sys.exit(1)
 	args = vars(parser.parse_args())
-	calc_insert(args["pair"][0], args["pair"][1], args["index"])
+	fq = False
+	if args["pair"][0].endswith(".fq"):
+		fq = True
+	calc_insert(args["pair"][0], args["pair"][1], args["index"], fq)
