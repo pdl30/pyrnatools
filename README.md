@@ -22,3 +22,5 @@ This will install the scripts in the pyrnatools/scripts directory. For more info
 ##Additional Tools
  - pyrna_insert_size.py -> Calculates insert size for paired end RNA-seq data
  - pyrna_denovo.py -> Cufflinks wrapper for denovo assembly
+ - pyrna_download.py -> Tool for downloading samples from GEO
+
