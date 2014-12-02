@@ -80,18 +80,61 @@ def single_tophat(fastq, index, gtf, outdir, threads):
 	p = subprocess.Popen(uniq.split(), stderr=report1_o)
 	p.communicate()
 
+def single_star(fastq, index, threads):
+	command1 = "STAR --genomeDir {} --readFilesIn {} --runThreadN {} --outFilterMismatchNmax 2".format(index, fastq, threads)
+	star_unique("Aligned.out.sam", "uniquely_mappable.sam")
+	command3 = "samtools view -bS uniquely_mappable.sam > uniquely_mappable.bam"
+	command2 = "samtools sort uniquely_mappable.bam uniquely_mappable_sorted"
+	subprocess.call(command1, shell=True)
+	subprocess.call(command2, shell=True)
+	subprocess.call(command3, shell=True)
+	os.remove("uniquely_mappable.sam")
+	os.remove("uniquely_mappable.bam")
 
+def paired_star(fastq1, fastq2, index, threads):
+	command1 = "STAR --genomeDir {} --readFilesIn {} {} --runThreadN {} --outFilterIntronMotifs None --outFilterMismatchNmax 2".format(index, fastq1, fastq2, threads)
+	star_unique("Aligned.out.sam", "uniquely_mappable.sam")
+	command3 = "samtools view -bS uniquely_mappable.sam > uniquely_mappable.bam"
+	command2 = "samtools sort uniquely_mappable.bam uniquely_mappable_sorted"
+	subprocess.call(command1, shell=True)
+	subprocess.call(command2, shell=True)
+	subprocess.call(command3, shell=True)
+	os.remove("uniquely_mappable.sam")
+	os.remove("uniquely_mappable.bam")
+
+def star_unique(samfile, outfile):
+	output=  open(outfile, "w")
+	with open(samfile) as f:
+		for line in f:
+			line = line.rstrip()
+			word = line.split("\t")
+			if line.startswith("@"):
+				output.write("{}\n".format(line)),
+				continue
+			if len(word) > 10:
+				if word[4] == "255":
+					if word[11] == "NH:i:1":
+						output.write("{}\n".format(line)),
 def main():
-	parser = argparse.ArgumentParser(description='ChIP-seq bowtie wrapper\n ')
-	parser.add_argument('-f', '--fastq', help='Single end fastq', required=False)
-	parser.add_argument('-p', '--pair', help='Paired end fastqs. Please put them in order!', required=False, nargs='+')
-	parser.add_argument('-i', '--index', help='Genome Index', required=True)
-	parser.add_argument('-g', '--gtf', help='GTF file', required=True)
-	parser.add_argument('-a', '--insert', help='Insert size for paried end, default=50', default=50, required=False)
-	parser.add_argument('-b', '--sd', help='Insert size SD for paried end, default=20', default=20, required=False)
-	parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
-	#parser.add_argument('-aligner',, help='Which aligner to use, options are Tophat/Star, default is Tophat [STAR not implemented yet]', required=False, default="Tophat")
-	parser.add_argument('-o', '--out', help='Name of results directory', required=True)
+	parser = argparse.ArgumentParser(description='RNA-seq alignment\n')
+	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
+	tophat_parser = subparsers.add_parser('tophat', help="Tophat alignment")
+	star_parser = subparsers.add_parser('star', help="STAR alignment")
+
+	tophat_parser.add_argument('-f', '--fastq', help='Single end fastq', required=False)
+	tophat_parser.add_argument('-p', '--pair', help='Paired end fastqs. Please put them in order!', required=False, nargs='+')
+	tophat_parser.add_argument('-i', '--index', help='Genome Index', required=True)
+	tophat_parser.add_argument('-g', '--gtf', help='GTF file', required=True)
+	tophat_parser.add_argument('-a', '--insert', help='Insert size for paried end, default=50', default=50, required=False)
+	tophat_parser.add_argument('-b', '--sd', help='Insert size SD for paried end, default=20', default=20, required=False)
+	tophat_parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
+	tophat_parser.add_argument('-o', '--out', help='Name of results directory', required=True)
+
+	star_parser.add_argument('-f', '--fastq', help='Single end fastq', required=False)
+	star_parser.add_argument('-p', '--pair', help='Paired end fastqs. Please put them in order!', required=False, nargs='+')
+	star_parser.add_argument('-i', '--index', help='Genome Index Folder', required=True)
+	star_parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
+	star_parser.add_argument('-o', '--out', help='Name of results directory', required=True)
 	if len(sys.argv)==1:
 		parser.print_help()
 		sys.exit(1)
@@ -103,13 +146,12 @@ def main():
 	else:
 		subprocess.call(["mkdir", args["out"]])
 
-	#if args["ALIGNER"] == "Tophat":
 	if args["pair"]:
 		fq1 = args["pair"][0]
 		fq2 = args["pair"][1]
-		print "==> Running FastQC...\n"
-		run_fastqc(fq1)
-		run_fastqc(fq2)
+	#	print "==> Running FastQC...\n"
+	#	run_fastqc(fq1)
+	#	run_fastqc(fq2)
 		fwd_adapt = find_adapters(fq1)
 		rev_adapt = find_adapters(fq2)
 		if fwd_adapt or rev_adapt:
@@ -117,9 +159,13 @@ def main():
 			cut_adapters(fwd_adapt, fq1, args["out"], fq2=fq2, rev_adapters=rev_adapt)
 			fq1 = args["out"]+"/trimmed_1.fastq" 
 			fq2 = args["out"]+"/trimmed_2.fastq"
-		print "==> Aligning fastq's...\n"
-		paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], args["insert"], args["sd"], args["threads"])
-	elif args["fastq"]:
+			fq1 = os.path.abspath(fq1)
+			fq2 = os.path.abspath(fq2)
+		else:
+			fq1 = os.path.abspath(fq1)
+			fq2 = os.path.abspath(fq2)
+
+	else:
 		fq1 = args["fastq"]
 		print "==> Running FastQC...\n"
 		run_fastqc(fq1)
@@ -128,5 +174,19 @@ def main():
 			print "==> Removing adapters...\n"
 			cut_adapters(adapt, fq1, args["out"])
 			fq1 = args["out"]+"/trimmed.fastq" 
-		print "==> Aligning fastq's...\n"
-		single_tophat(args["fastq"], args["index"], args["gtf"], args["out"], args["threads"])
+			fq1 = os.path.abspath(fq1)
+		else:
+			subprocess.call("mv {} {}".format(fq1, args["out"]), shell=True)
+			fq1 = os.path.abspath(fq1)
+
+	if args["subparser_name"] == "tophat":
+		if args["pair"]:
+			paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], args["insert"], args["sd"], args["threads"])
+		elif args["fastq"]:
+			single_tophat(fq1, args["index"], args["gtf"], args["out"], args["threads"])
+	elif args["subparser_name"] == "star":
+		os.chdir(args["out"])
+		if args["pair"]:
+			paired_star(fq1, fq2, args["index"], args["threads"])
+		elif args["fastq"]:
+			single_star(fq1, args["index"], args["threads"])
