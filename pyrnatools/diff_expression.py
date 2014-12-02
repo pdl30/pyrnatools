@@ -64,6 +64,9 @@ def main():
 	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
 	deseq2_parser.add_argument('-p','--padj', help='Option for DESEQ2', default=0.05, required=False)
 	gfold_parser.add_argument('-a','--alt', help='Use HTseq counts faked files. Assumes normalisation is already in place. Requires a standard file extension.', required=False)
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(1)
 	args = vars(parser.parse_args())
 	Config = ConfigParser.ConfigParser()
 	Config.optionxform = str
