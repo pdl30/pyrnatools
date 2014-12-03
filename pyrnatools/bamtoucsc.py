@@ -80,9 +80,23 @@ def bedgraphtobigwig(bedgraph, chrom):
 	command = ["bedGraphToBigWig", bedgraph, chrom, bw]
 	subprocess.call(command)
 
+def ConfigSectionMap(Config, section):
+	dict1 = {}
+	options = Config.options(section)
+	for option in options:
+		try:
+			dict1[option] = Config.get(section, option)
+			if dict1[option] == -1:
+				DebugPrint("skip: %s" % option)
+		except:
+			print("exception on %s!" % option)
+			dict1[option] = None
+	return dict1
+
 def main():
 	parser = argparse.ArgumentParser(description="Processes RNA-seq samples to bigWig tracks.\nIf Tophat2 is specified, this will pull out the uniquely mapped reads\nOtherwiseit is assumed that the bam file is already uniquely mapped!")
-	parser.add_argument('-i', '--input', help='Bam file from aligner etc.', required=True)
+	parser.add_argument('-c', '--config', help='Contains [Conditions] with bam files as keys. Use either this for multiple files or input for one at a time', required=False)
+	parser.add_argument('-i', '--input', help='Bam file from aligner etc.', required=False)
 	parser.add_argument('-p', action='store_true', help='Use if samples are paired end.', required=False)
 	parser.add_argument('-g', '--genome', help='Genome the samples are aligned to, options include mm10/mm9/hg19', required=True)
 	parser.add_argument('-rpm', action='store_true', help='Scale to RPM', required=False) 
@@ -96,18 +110,38 @@ def main():
 	if not os.path.isfile(chrom):
 		raise Exception("Unsupported Genome!")
 	
-	name = re.sub(".bam$", "", args["input"])
-
-	unique_reads = convert_bam_bed(name, args["p"])
-	#print unique_reads
-	if args["ens"]:
-		change_ens_ucsc_for_bed(name)
-		name = name+"_ucsc"
-
-	if args["rpm"]:
-		scale = float(1000000)/int(unique_reads)
-		bedgraph = genomeCoverage(name, args["genome"], rpm=scale)	
-	else:
-		bedgraph = genomeCoverage(name, args["genome"])
+	if args["input"]:
+		name = re.sub(".bam$", "", args["input"])
+		unique_reads = convert_bam_bed(name, args["p"])
+		#print unique_reads
+		if args["ens"]:
+			change_ens_ucsc_for_bed(name)
+			name = name+"_ucsc"
+		if args["rpm"]:
+			scale = float(1000000)/int(unique_reads)
+			bedgraph = genomeCoverage(name, args["genome"], rpm=scale)	
+		else:
+			bedgraph = genomeCoverage(name, args["genome"])	
+		bedgraphtobigwig(bedgraph, chrom)
 	
-	bedgraphtobigwig(bedgraph, chrom)
+	elif args["config"]:
+		Config = ConfigParser.ConfigParser()
+		Config.optionxform = str
+		Config.read(args["config"])
+
+		conditions = ConfigSectionMap("Conditions", Config)
+		
+		for key in conditions:
+			name = re.sub(".bam$", "", key)
+			unique_reads = convert_bam_bed(name, args["p"])
+			
+			if args["ens"]:
+				change_ens_ucsc_for_bed(name)
+				name = name+"_ucsc"
+			if args["rpm"]:
+				scale = float(1000000)/int(unique_reads)
+				bedgraph = genomeCoverage(name, args["genome"], rpm=scale)	
+			else:
+				bedgraph = genomeCoverage(name, args["genome"])	
+			bedgraphtobigwig(bedgraph, chrom)
+	
