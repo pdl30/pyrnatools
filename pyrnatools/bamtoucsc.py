@@ -62,14 +62,14 @@ def change_ens_ucsc_for_bed(name):
 			outbed2.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(new_chr, word[1], word[2], word[3], word[4], word[5])),
 
 ##Must include scaling!
-def genomeCoverage(name, house=None, rpm=None, cov=None):
+def genomeCoverage(name, genome, house=None, rpm=None, cov=None):
 	print "==> Converting bed to bedGraph...\n"
 	inbed = pybedtools.BedTool(name+".BED")
 	if rpm:
-		outcov = inbed.genome_coverage(bg=True, genome='mm10', scale=rpm)
+		outcov = inbed.genome_coverage(bg=True, genome=genome, scale=rpm)
 		output = name+"_rpm.bedGraph"
 	else:
-		outcov = inbed.genome_coverage(bg=True, genome='mm10')
+		outcov = inbed.genome_coverage(bg=True, genome=genome)
 		output = name+".bedGraph"
 	outcov.saveas(output)
 	return output
@@ -106,8 +106,8 @@ def main():
 
 	if args["rpm"]:
 		scale = float(1000000)/int(unique_reads)
-		bedgraph = genomeCoverage(name, rpm=scale)	
+		bedgraph = genomeCoverage(name, args["genome"], rpm=scale)	
 	else:
-		bedgraph = genomeCoverage(name)
+		bedgraph = genomeCoverage(name, args["genome"])
 	
 	bedgraphtobigwig(bedgraph, chrom)
