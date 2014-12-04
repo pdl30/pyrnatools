@@ -149,9 +149,9 @@ def main():
 	if args["pair"]:
 		fq1 = args["pair"][0]
 		fq2 = args["pair"][1]
-	#	print "==> Running FastQC...\n"
-	#	run_fastqc(fq1)
-	#	run_fastqc(fq2)
+		print "==> Running FastQC...\n"
+		run_fastqc(fq1)
+		run_fastqc(fq2)
 		fwd_adapt = find_adapters(fq1)
 		rev_adapt = find_adapters(fq2)
 		if fwd_adapt or rev_adapt:

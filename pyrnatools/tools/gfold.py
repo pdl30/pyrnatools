@@ -16,11 +16,12 @@ import argparse
 from collections import defaultdict
 
 def run_gfold_c(bam_file, sample_dict, gtf_file):
-	count = sample_dict[bam_file]+"_gfold.count"
+	count_file = re.sub(".bam$", "_gfold.count", bam_file)
 	command = "samtools view {0} | gfold count -ann {1} -tag stdin -o {2}".format(bam_file, gtf_file, count)
 	subprocess.call(command, shell=True)
 
 def gfold_housekeeper(cond1, cond2):
+	#Not used anymore!
 	#Here it is Gapdh but can be anything!
 	count1 = cond1+"_gfold.count"
 	count2 = cond2 +"_gfold.count"

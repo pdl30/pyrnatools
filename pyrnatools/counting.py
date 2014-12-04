@@ -70,6 +70,8 @@ def main():
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD Count")
 	htseq_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
 	gfold_parser.add_argument('-c','--config', help='Config file containing [Conditions], please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
+	htseq_parser.add_argument('-i','--input', help='Input bam file', required=False)
+	gfold_parser.add_argument('-i','--input', help='Input bam file', required=False)
 	htseq_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-n',action='store_true', help='Gapdh Normlisation', required=False)
@@ -83,26 +85,33 @@ def main():
 	args = vars(parser.parse_args())
 
 	if args["subparser_name"] == "gfold":
-		Config = ConfigParser.ConfigParser()
-		Config.optionxform = str
-		Config.read(args["config"])
+		if args["config"]:
+			Config = ConfigParser.ConfigParser()
+			Config.optionxform = str
+			Config.read(args["config"])
 
-		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions", Config)
-		pool = Pool(int(args["threads"]))
-		pool.map(run_gfold_count, itertools.izip(list(conditions.keys()),itertools.repeat(conditions), itertools.repeat(args["gtf"]))) ##Running annotation in parallel
-		pool.close()
-		pool.join()
+			#Read design matrix and create list of conditions and directories
+			conditions = ConfigSectionMap("Conditions", Config)
+			pool = Pool(int(args["threads"]))
+			pool.map(run_gfold_count, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]))) ##Running annotation in parallel
+			pool.close()
+			pool.join()
+		elif args["input"]:
+			gfold.run_gfold_c(args["input"], args["gtf"])
+
 	elif args["subparser_name"] == "htseq":
-		Config = ConfigParser.ConfigParser()
-		Config.optionxform = str
-		Config.read(args["config"])
+		if args["config"]:
+			Config = ConfigParser.ConfigParser()
+			Config.optionxform = str
+			Config.read(args["config"])
 
-		#Read design matrix and create list of conditions and directories
-		conditions = ConfigSectionMap("Conditions", Config)
+			#Read design matrix and create list of conditions and directories
+			conditions = ConfigSectionMap("Conditions", Config)
 
-		pool = Pool(int(args["threads"]))
-		pool.map(anno_function, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]), itertools.repeat(args["stranded"]))) ##Running annotation in parallel
-		pool.close()
-		pool.join()	
-		join_counts(conditions, args["outfile"])
+			pool = Pool(int(args["threads"]))
+			pool.map(anno_function, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]), itertools.repeat(args["stranded"]))) ##Running annotation in parallel
+			pool.close()
+			pool.join()	
+			join_counts(conditions, args["outfile"])
+		elif args["input"]:
+			annotate_sam(args["input"], args["gtf"], args["stranded"])
