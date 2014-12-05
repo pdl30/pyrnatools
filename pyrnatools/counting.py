@@ -17,10 +17,13 @@ from collections import defaultdict
 from pyrnatools.tools import gfold, deseq2
 from multiprocessing import Pool
 
-def annotate_sam(bam_file, gtf_file, stranded):
+def annotate_sam(bam_file, gtf_file, stranded, outfile=None):
 	print "==> Counting sam file...\n"
-	count_file = re.sub(".bam$", ".count", bam_file)
-	htout = open(count_file,"w")
+	if outfile:
+		htout = open(outfile, "w")
+	else:
+		count_file = re.sub(".bam$", ".count", bam_file)
+		htout = open(count_file,"w")
 	command = ["htseq-count", "--mode=union", "--stranded={}".format(stranded), "--quiet", "-f", "bam", bam_file,  gtf_file]
 	subprocess.call(command, stdout=htout)
 
@@ -78,7 +81,7 @@ def main():
 	htseq_parser.add_argument('-s','--stranded', help='Option for HTSeq', default="yes", required=False)
 	htseq_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
 	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
-	htseq_parser.add_argument('-o','--outfile', help='Output counts file', required=False)
+	htseq_parser.add_argument('-o','--outfile', help='Output counts file. If using config, will be matrix, else will be single output', required=False)
 	if len(sys.argv)==1:
 		parser.print_help()
 		sys.exit(1)
@@ -114,4 +117,4 @@ def main():
 			pool.join()	
 			join_counts(conditions, args["outfile"])
 		elif args["input"]:
-			annotate_sam(args["input"], args["gtf"], args["stranded"])
+			annotate_sam(args["input"], args["gtf"], args["stranded"], args["outfile"])
