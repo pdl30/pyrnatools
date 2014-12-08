@@ -15,6 +15,7 @@ import pyrnatools
 import pysam
 import pybedtools
 import pkg_resources
+import ConfigParser
 
 def convert_bam_bed(name, paired):
 	count = 0
@@ -80,7 +81,7 @@ def bedgraphtobigwig(bedgraph, chrom):
 	command = ["bedGraphToBigWig", bedgraph, chrom, bw]
 	subprocess.call(command)
 
-def ConfigSectionMap(Config, section):
+def ConfigSectionMap(section, Config):
 	dict1 = {}
 	options = Config.options(section)
 	for option in options:
