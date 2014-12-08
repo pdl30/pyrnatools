@@ -63,23 +63,44 @@ def change_ens_ucsc_for_bed(name):
 			outbed2.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(new_chr, word[1], word[2], word[3], word[4], word[5])),
 
 ##Must include scaling!
-def genomeCoverage(name, genome, house=None, rpm=None, cov=None):
+def genomeCoverage(name, genome, rpm=None, split=False):
 	print "==> Converting bed to bedGraph...\n"
 	inbed = pybedtools.BedTool(name+".BED")
-	if rpm:
-		outcov = inbed.genome_coverage(bg=True, genome=genome, scale=rpm)
-		output = name+"_rpm.bedGraph"
+	if split:
+		if rpm:
+			outcov1 = inbed.genome_coverage(bg=True, strand="+", genome=genome, scale=rpm)
+			output1 = name+"_pos_rpm.bedGraph"
+			outcov2 = inbed.genome_coverage(bg=True, strand="-", genome=genome, scale=rpm)
+			output2 = name+"_neg_rpm.bedGraph"
+		else:
+			outcov1 = inbed.genome_coverage(bg=True, strand="+", genome=genome)
+			output1 = name+"_pos.bedGraph"
+			outcov2 = inbed.genome_coverage(bg=True, strand="-", genome=genome)
+			output2 = name+"_neg.bedGraph"
+		outcov1.saveas(output1)
+		outcov2.saveas(output2)
+		output = [output1, output2]
 	else:
-		outcov = inbed.genome_coverage(bg=True, genome=genome)
-		output = name+".bedGraph"
-	outcov.saveas(output)
+		if rpm:
+			outcov = inbed.genome_coverage(bg=True, genome=genome, scale=rpm)
+			output = name+"_rpm.bedGraph"
+		else:
+			outcov = inbed.genome_coverage(bg=True, genome=genome)
+			output = name+".bedGraph"
+		outcov.saveas(output)
 	return output
 
-def bedgraphtobigwig(bedgraph, chrom):
-	bw = re.sub(".bedGraph$", ".bw", bedgraph)
+def bedgraphtobigwig(bedgraph, chrom, split):
 	print "==> Converting bedGraph to bigWig...\n"
-	command = ["bedGraphToBigWig", bedgraph, chrom, bw]
-	subprocess.call(command)
+	if split:
+		for bedg in bedgraph:
+			bw = re.sub(".bedGraph$", ".bw", bedg)
+			command = ["bedGraphToBigWig", bedg, chrom, bw]
+			subprocess.call(command)
+	else:	
+		bw = re.sub(".bedGraph$", ".bw", bedgraph)
+		command = ["bedGraphToBigWig", bedgraph, chrom, bw]
+		subprocess.call(command)
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}
@@ -100,6 +121,7 @@ def main():
 	parser.add_argument('-i', '--input', help='Bam file from aligner etc.', required=False)
 	parser.add_argument('-p', action='store_true', help='Use if samples are paired end.', required=False)
 	parser.add_argument('-g', '--genome', help='Genome the samples are aligned to, options include mm10/mm9/hg19', required=True)
+	parser.add_argument('-s', action='store_true', help='Split tracks by strand', required=False) 
 	parser.add_argument('-rpm', action='store_true', help='Scale to RPM', required=False) 
 	parser.add_argument('-ens', action='store_true', help='If samples are aligned to ensembl genome, convert to UCSC coordinates', required=False) 
 	if len(sys.argv)==1:
@@ -114,16 +136,16 @@ def main():
 	if args["input"]:
 		name = re.sub(".bam$", "", args["input"])
 		unique_reads = convert_bam_bed(name, args["p"])
-		#print unique_reads
+
 		if args["ens"]:
 			change_ens_ucsc_for_bed(name)
 			name = name+"_ucsc"
 		if args["rpm"]:
 			scale = float(1000000)/int(unique_reads)
-			bedgraph = genomeCoverage(name, args["genome"], rpm=scale)	
+			bedgraph = genomeCoverage(name, args["genome"], rpm=scale, split=args["s"])	
 		else:
-			bedgraph = genomeCoverage(name, args["genome"])	
-		bedgraphtobigwig(bedgraph, chrom)
+			bedgraph = genomeCoverage(name, args["genome"], split=args["s"])	
+		bedgraphtobigwig(bedgraph, chrom, args["s"])
 	
 	elif args["config"]:
 		Config = ConfigParser.ConfigParser()
@@ -141,8 +163,8 @@ def main():
 				name = name+"_ucsc"
 			if args["rpm"]:
 				scale = float(1000000)/int(unique_reads)
-				bedgraph = genomeCoverage(name, args["genome"], rpm=scale)	
+				bedgraph = genomeCoverage(name, args["genome"], rpm=scale, split=args["s"])	
 			else:
-				bedgraph = genomeCoverage(name, args["genome"])	
-			bedgraphtobigwig(bedgraph, chrom)
+				bedgraph = genomeCoverage(name, args["genome"], split=args["s"])	
+			bedgraphtobigwig(bedgraph, chrom, args["s"])
 	
