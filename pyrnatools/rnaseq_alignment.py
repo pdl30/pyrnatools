@@ -14,7 +14,8 @@ import argparse
 import os, sys
 
 def run_fastqc(fq1):
-	command = ["fastqc", "{}".format(fq1)] #outdir must exist!
+	print "Running FastQC on {}\n".format(fq1)
+	command = ["fastqc", "-q", "{}".format(fq1)] #outdir must exist!
 	subprocess.call(command)
 
 def find_adapters(fq):
