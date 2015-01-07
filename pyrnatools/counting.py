@@ -78,7 +78,7 @@ def main():
 	htseq_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-n',action='store_true', help='Gapdh Normlisation', required=False)
-	htseq_parser.add_argument('-s','--stranded', help='Option for HTSeq', default="yes", required=False)
+	htseq_parser.add_argument('-s','--stranded', help='Option for HTSeq, default=yes', default="yes", required=False)
 	htseq_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
 	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
 	htseq_parser.add_argument('-o','--outfile', help='Output counts file. If using config, will be matrix, else will be single output', required=False)
