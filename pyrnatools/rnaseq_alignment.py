@@ -177,7 +177,7 @@ def main():
 			fq1 = args["out"]+"/trimmed.fastq" 
 			fq1 = os.path.abspath(fq1)
 		else:
-			subprocess.call("mv {} {}".format(fq1, args["out"]), shell=True)
+		#	subprocess.call("mv {} {}".format(fq1, args["out"]), shell=True) #This shouldn't be done. 
 			fq1 = os.path.abspath(fq1)
 
 	if args["subparser_name"] == "tophat":
