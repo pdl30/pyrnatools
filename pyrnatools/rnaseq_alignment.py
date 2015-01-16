@@ -12,6 +12,8 @@ import subprocess
 import re
 import argparse
 import os, sys
+from pyrnatools import calc_insert
+import math
 
 def run_fastqc(fq1):
 	print "Running FastQC on {}\n".format(fq1)
@@ -129,6 +131,7 @@ def main():
 	tophat_parser.add_argument('-a', '--insert', help='Insert size for paried end, default=50', default=50, required=False)
 	tophat_parser.add_argument('-b', '--sd', help='Insert size SD for paried end, default=20', default=20, required=False)
 	tophat_parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
+	tophat_parser.add_argument('-c', help='Will find sd and insert automatically', action='store_true', required=False)
 	tophat_parser.add_argument('-o', '--out', help='Name of results directory', required=True)
 
 	star_parser.add_argument('-f', '--fastq', help='Single end fastq', required=False)
@@ -182,7 +185,15 @@ def main():
 
 	if args["subparser_name"] == "tophat":
 		if args["pair"]:
-			paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], args["insert"], args["sd"], args["threads"])
+			if args["c"]:
+				fq = False
+				if args["pair"][0].endswith(".fq"):
+					fq = True
+				name = run_bowtie(fq1, fq2, args["index"], fq)
+				insert = get_insert(name)
+				paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], iinsert[0], insert[1], args["threads"])
+			else:
+				paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], args["insert"], args["sd"], args["threads"])
 		elif args["fastq"]:
 			single_tophat(fq1, args["index"], args["gtf"], args["out"], args["threads"])
 	elif args["subparser_name"] == "star":

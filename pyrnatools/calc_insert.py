@@ -120,7 +120,7 @@ def read_infer():
 	return reverse
 
 #def main():
-if __name__ == "__main__":	
+def main():
 	parser = argparse.ArgumentParser(description='Collection of tools for paired end RNA-seq data\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
 	insert_parser = subparsers.add_parser('insert', help="Calculates insert size for paired end data")
