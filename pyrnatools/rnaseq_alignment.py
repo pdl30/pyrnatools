@@ -76,14 +76,14 @@ def cut_adapters(paired, adapters, fq1, outdir, rev_adapters=None, fq2=None):
 def paired_tophat(fastq1, fastq2, index, gtf, outdir, insert, sd, threads):
 	report = outdir+'/'+'tophat_report.txt'
 	report1_o = open(report, "wb")
-	uniq = "tophat2 -r {5} --mate-std-dev {6} -p {7} --GTF {0} -o {1} {2} {3} {4}".format(gtf, outdir, index, fastq1, fastq2, insert, sd, threads)
+	uniq = "tophat2 -r {5} --mate-std-dev {6} -p {7} --GTF {0} -o {1} {2} {3} {4} --no-coverage-search".format(gtf, outdir, index, fastq1, fastq2, insert, sd, threads)
 	p = subprocess.Popen(uniq.split(), stderr=report1_o)
 	p.communicate()
 
 def single_tophat(fastq, index, gtf, outdir, threads):
 	report = outdir+'/'+'tophat_report.txt'
 	report1_o = open(report, "wb")
-	uniq = "tophat2 --GTF {0} -p {4} -o {1} {2} {3}".format(gtf, outdir, index, fastq, threads)
+	uniq = "tophat2 --GTF {0} -p {4} -o {1} {2} {3} --no-coverage-search".format(gtf, outdir, index, fastq, threads)
 	p = subprocess.Popen(uniq.split(), stderr=report1_o)
 	p.communicate()
 
