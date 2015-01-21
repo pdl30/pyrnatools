@@ -13,6 +13,8 @@ import re, os, sys
 import argparse
 import math
 import pkg_resources
+import numpy
+import pysam
 
 def head(ifile, ofile):
 	output = open(ofile, "w")
@@ -32,9 +34,9 @@ def run_bowtie(fq1, fq2, index, fq):
 		name = re.sub("_1.fq", "", fq1)
 	else:
 		name = re.sub("_1.fastq", "", fq1)
-	read_size = head(fq1, "{0}_trun1.fq".format(name))
+	head(fq1, "{0}_trun1.fq".format(name))
 	head(fq2, "{0}_trun2.fq".format(name))
-	c3 = "bowtie --sam -I 0 -X 500 {0} -1 {1}_trun1.fq -2 {1}_trun2.fq > {1}_trun.sam".format(index, name)
+	c3 = "bowtie2 -I 0 -X 500 {0} -1 {1}_trun1.fq -2 {1}_trun2.fq -S {1}_trun.sam".format(index, name)
 	subprocess.call(c3, shell=True, stderr=f)
 	return name
 
@@ -54,7 +56,26 @@ def getmeanval(dic,maxbound=-1):
 		n=n+v;
 		varv=math.sqrt(nsum*1.0/(n-1));
 	return [meanv,varv];
- 
+
+def pysam_insert_size(name):
+	samfile = name+"_trun_sort.bam"
+	sam_file = pysam.Samfile(samfile, "r")
+	isizes = list(abs(alignedread.isize) for alignedread in sam_file.fetch() if alignedread.is_proper_pair)
+	arr = numpy.array(isizes)
+	mean = numpy.mean(arr, axis=0)
+	sd = numpy.std(arr, axis=0)
+	return [mean, sd]
+
+def sort_index(name):
+	c0 = "samtools view -bS {0}_trun.sam > {0}_trun.bam".format(name)
+	subprocess.call(c0, shell=True)
+	c1 = "samtools sort {0}_trun.bam {0}_trun_sort".format(name)
+	subprocess.call(c1, shell=True)
+	c2 = "samtools index {}_trun_sort.bam".format(name)
+	subprocess.call(c2, shell=True)
+	os.remove(name + '_trun.sam')
+	os.remove(name + '_trun.bam')
+
 def get_insert(name):
 	samfile = name+"_trun.sam"
 	plrdlen={};
