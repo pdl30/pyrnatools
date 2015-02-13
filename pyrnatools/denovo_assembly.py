@@ -13,13 +13,13 @@ import argparse
 import ConfigParser
 import subprocess
 
-def run_cufflinks(idict, threads, libtype=None):
+def run_cufflinks(idict, threads, libtype, gtf=None):
 	for key in idict:
 		outdir = key+"_clinks"
-		if libtype:
-			command = "cufflinks -p {} --library-type {} -o {} {}".format(threads, libtype, outdir, key)
+		if gtf:
+			command = "cufflinks -p {} -g {} --library-type {} -o {} {}".format(threads, libtype, outdir, key)
 		else:
-			command = "cufflinks -p {} -o {} {}".format(threads, outdir, key)
+			command = "cufflinks -p {} --library-type {} -o {} {}".format(threads, outdir, key)
 	subprocess.call(command.split())
 
 def run_cuffmerge(idict, threads, fasta, outdir=None):
@@ -33,7 +33,6 @@ def run_cuffmerge(idict, threads, fasta, outdir=None):
 	else:
 		command = "cuffmerge -p {} -s {} tmp_cuff_input.txt".format(threads, fasta)
 	subprocess.call(command.split())
-
 
 def ConfigSectionMap(section):
 	dict1 = {}
@@ -49,11 +48,12 @@ def ConfigSectionMap(section):
 	return dict1
 
 def main():
-	parser = argparse.ArgumentParser(description='Denovo assembly for RNA-seq experiments.\n')
-	parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!\nPlease use a unique name for every input bam file!', required=False)
-	parser.add_argument('-l','--library', help='Cufflinks option for library type', required=False)
-	parser.add_argument('-f','--fasta', help='Reference Fasta', required=True)
-	parser.add_argument('-t','--threads', help='Number of threads', default=4, required=False)
+	parser = argparse.ArgumentParser(description='Assembly for RNA-seq experiments.\n')
+	parser.add_argument('-c','--config', help='Config file containing Conditions which are bam/sam files', required=False)
+	parser.add_argument('-g','--gtf', help='GTF file,  If not provided, will do denovo alignment', required=False)
+	parser.add_argument('-l','--library', help='Cufflinks option for library type, program default is unstranded', default='fr-unstranded', required=False)
+	parser.add_argument('-f','--fasta', help='Reference Fasta', required=False)
+	parser.add_argument('-t','--threads', help='Number of threads, default=4', default=4, required=False)
 	parser.add_argument('-o','--outdir', help='Output directory for merged transcripts', required=False)
 	if len(sys.argv)==1:
 		parser.print_help()
@@ -66,12 +66,10 @@ def main():
 
 	#Run cufflinks
 	if args["library"]:
-		run_cufflinks(conditions, args["threads"], args["library"])
-	else:
-		run_cufflinks(conditions, args["threads"])
+		run_cufflinks(conditions, args["threads"], args["library"], args["gtf"])
+#	else:
+#		run_cufflinks(conditions, args["threads"])
 
-	#Run cuffmerge
-	if args["outdir"]:
-		run_cuffmerge(conditions, args["threads"], args["fasta"], args["outdir"])
-	else:
-		run_cuffmerge(conditions, args["threads"], args["fasta"])
+#	run_cuffmerge(conditions, args["threads"], args["fasta"], args["outdir"])
+	#else:
+	#	run_cuffmerge(conditions, args["threads"], args["fasta"])

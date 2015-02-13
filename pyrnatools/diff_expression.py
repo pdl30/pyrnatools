@@ -56,9 +56,10 @@ def run_rcode(rscript, name):
 
 def main():
 	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
-	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
+	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name") #Add cuffdiff to this
 	deseq2_parser = subparsers.add_parser('deseq2', help="Runs DESEQ2")
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD. Use if you have no replicates!")
+	cuff_parser = subparsers.add_parser('cuff', help="Runs Cufflinks and cuffmerge")
 	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
