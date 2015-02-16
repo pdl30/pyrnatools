@@ -15,26 +15,30 @@ import subprocess
 
 def run_cufflinks(idict, threads, libtype, gtf=None):
 	for key in idict:
-		outdir = key+"_clinks"
-		if gtf:
-			command = "cufflinks -p {} -g {} --library-type {} -o {} {}".format(threads, libtype, outdir, key)
+		bam_name = os.path.basename(key)
+		output = re.sub(".bam$", "_clinks", bam_name)
+		#outdir = key+"_clinks"
+		if gtf:	
+			command = "cufflinks -p {} -g {} --library-type {} -o {} {}".format(threads, gtf, libtype, output, key)
 		else:
-			command = "cufflinks -p {} --library-type {} -o {} {}".format(threads, outdir, key)
-	subprocess.call(command.split())
+			command = "cufflinks -p {} --library-type {} -o {} {}".format(threads, output, key)
+		subprocess.call(command.split())
 
-def run_cuffmerge(idict, threads, fasta, outdir=None):
+def run_cuffmerge(idict, threads, fasta, gtf):
 	tmp = open("tmp_cuff_input.txt", "w")
 	for key in idict:
-		outdir = key+"_clinks"
-		tmp.write("{}\n".format(outdir)),
+		bam_name = os.path.basename(key)
+		output = re.sub(".bam$", "_clinks/transcripts.gtf", bam_name)
+		tmp.write("{}\n".format(output)),
 	tmp.close()
-	if outdir:
-		command = "cuffmerge -p {} -o {} -s {} tmp_cuff_input.txt".format(threads, outdir, fasta)
-	else:
-		command = "cuffmerge -p {} -s {} tmp_cuff_input.txt".format(threads, fasta)
+	command = "cuffmerge -p {} -g {} -o cuffmerge/ -s {} tmp_cuff_input.txt".format(threads, gtf, fasta)
 	subprocess.call(command.split())
 
-def ConfigSectionMap(section):
+def run_cuffdiff(idict, comp1, comp2, threads, mergedgtf, outdir):
+	list1 = 1
+
+
+def ConfigSectionMap(section, Config):
 	dict1 = {}
 	options = Config.options(section)
 	for option in options:
@@ -62,14 +66,14 @@ def main():
 	Config = ConfigParser.ConfigParser()
 	Config.optionxform = str
 	Config.read(args["config"])
-	conditions = ConfigSectionMap("Conditions")
-
+	conditions = ConfigSectionMap("Conditions", Config)
 	#Run cufflinks
-	if args["library"]:
-		run_cufflinks(conditions, args["threads"], args["library"], args["gtf"])
-#	else:
-#		run_cufflinks(conditions, args["threads"])
+	#run_cufflinks(conditions, args["threads"], args["library"], args["gtf"])
+	run_cuffmerge(conditions, args["threads"], args["fasta"], args["gtf"])
 
-#	run_cuffmerge(conditions, args["threads"], args["fasta"], args["outdir"])
-	#else:
-	#	run_cuffmerge(conditions, args["threads"], args["fasta"])
+	#comparisons = ConfigSectionMap("Comparisons", Config)
+	#for comp in comparisons:
+#		c = comparisons[comp].split(",")
+		#comps = [x.strip(' ') for x in c]
+
+main()
