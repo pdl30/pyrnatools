@@ -34,9 +34,14 @@ def run_cuffmerge(idict, threads, fasta, gtf):
 	command = "cuffmerge -p {} -g {} -o cuffmerge/ -s {} tmp_cuff_input.txt".format(threads, gtf, fasta)
 	subprocess.call(command.split())
 
-def run_cuffdiff(idict, comp1, comp2, threads, mergedgtf, outdir):
-	list1 = 1
-
+def run_cuffdiff(idict, comp1, comp2, threads):
+	rev_cond = reverse_dict(idict)
+	list1 = ",".join(list(rev_cond[comp1]))
+	list2 = ",".join(list(rev_cond[comp2]))
+	outdir = "{}_vs_{}".format(comp1, comp2)
+	command = "cuffdiff -o {} -u -p {} --emit-count-tables cuffmerge/merged.gtf {} {}".format(outdir, threads, list1, list2)
+	print command
+	subprocess.call(command.split())
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}
@@ -51,6 +56,13 @@ def ConfigSectionMap(section, Config):
 			dict1[option] = None
 	return dict1
 
+def reverse_dict(idict):
+	inv_map = {}
+	for k, v in idict.iteritems():
+		inv_map[v] = inv_map.get(v, [])
+		inv_map[v].append(k)
+	return inv_map
+
 def main():
 	parser = argparse.ArgumentParser(description='Assembly for RNA-seq experiments.\n')
 	parser.add_argument('-c','--config', help='Config file containing Conditions which are bam/sam files', required=False)
@@ -58,7 +70,6 @@ def main():
 	parser.add_argument('-l','--library', help='Cufflinks option for library type, program default is unstranded', default='fr-unstranded', required=False)
 	parser.add_argument('-f','--fasta', help='Reference Fasta', required=False)
 	parser.add_argument('-t','--threads', help='Number of threads, default=4', default=4, required=False)
-	parser.add_argument('-o','--outdir', help='Output directory for merged transcripts', required=False)
 	if len(sys.argv)==1:
 		parser.print_help()
 		sys.exit(1)
@@ -69,11 +80,12 @@ def main():
 	conditions = ConfigSectionMap("Conditions", Config)
 	#Run cufflinks
 	#run_cufflinks(conditions, args["threads"], args["library"], args["gtf"])
-	run_cuffmerge(conditions, args["threads"], args["fasta"], args["gtf"])
+	#run_cuffmerge(conditions, args["threads"], args["fasta"], args["gtf"])
 
-	#comparisons = ConfigSectionMap("Comparisons", Config)
-	#for comp in comparisons:
-#		c = comparisons[comp].split(",")
-		#comps = [x.strip(' ') for x in c]
+	comparisons = ConfigSectionMap("Comparisons", Config)
+	for comp in comparisons:
+		c = comparisons[comp].split(",")
+		comps = [x.strip(' ') for x in c]
+		run_cuffdiff(conditions, comps[0], comps[1], args["threads"])
 
 main()
