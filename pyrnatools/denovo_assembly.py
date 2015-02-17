@@ -41,7 +41,7 @@ def run_cuffdiff(idict, comp1, comp2, threads):
 	outdir = "{}_vs_{}".format(comp1, comp2)
 	command = "cuffdiff -o {} -u -p {} --emit-count-tables cuffmerge/merged.gtf {} {}".format(outdir, threads, list1, list2)
 	print command
-	subprocess.call(command.split())
+	#subprocess.call(command.split())
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}

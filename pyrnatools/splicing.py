@@ -93,7 +93,6 @@ def mats(conditions, comp1, comp2, gtf, insert, sd, rlen, mats_program):
 			gtf, outdir, rlen, a, c, b, d)
 		subprocess.call(command.split())
 
-
 def reverse_dict(idict):
 	inv_map = {}
 	for k, v in idict.iteritems():
