@@ -71,9 +71,40 @@ def dexseq_prep(dexseq_dir, gtf, conditions, paired, orientation):
 		command = "python {} -f bam -p {} -s {} {} {} {}".format(count_program, p, orientation, gtf, sample, output)
 		subprocess.call(command.split())
 
+def create_design_for_R(idict):
+	output = open("tmp_design.txt", "w")
+	output.write("sampleName\tfileName\tcondition\n"),
+	for key in sorted(idict.keys()):
+		bam_name = os.path.basename(sample)
+		name = re.sub(".bam$", "", bam_name)
+		count = re.sub(".bam$", "_dexseq.count", bam_name)
+		output.write("{}\t{}\t{}\n".format(name, count, idict[key]))
+	output.close()
 
-def spliceR():
-	rscript = "library(spliceR)"
+def dexseq_run(conditions, comp1, comp2, gtf):
+	rscript = "suppressPackageStartupMessages(library(DEXSeq))\n"
+	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
+	rscript += "dxd <- DEXSeqDataSetFromHTSeq(as.character(pdata[,2]), sampleData=pdata, design= ~ sample + exon + Condition:exon, flattenedfile={})\n".format(gtf)
+	rscript += "dxd = estimateSizeFactors( dxd )\n"
+	rscript += "dxd = estimateDispersions( dxd )\n"
+	rscript += "dxd = testForDEU( dxd )\n"
+	rscript += "dxr1 = DEXSeqResults( dxd )\n"
+	
+
+def spliceR(idir, gtf, genome):
+	#Uses cuffdiff directories
+	rscript = "library(spliceR)\n"
+	rscript += "cuffDB <- readCufflinks(dir={},gtf={},genome='{}')\n"
+	rscript += "cuffDB_spliceR <- prepareCuff(cuffDB)\n"
+	rscript += "myTranscripts <- transcripts(cuffDB_spliceR); myExons <- exons(cuffDB_spliceR); conditions(cuffDB_spliceR)\n"
+	#rscript += "cuffDB_spliceR_filtered <- preSpliceRFilter(cuffDB_spliceR,filters=c('expressedIso', 'isoOK', 'expressedGenes', 'geneOK'))\n"
+	rscript += "mySpliceRList <- spliceR(cuffDB_spliceR, compareTo='preTranscript', filters=c('expressedGenes','geneOK', 'isoOK', 'expressedIso', 'isoClass'))\n"
+	rscript += "ucscCDS <- getCDS(selectedGenome='hg19', repoName='UCSC'); require('BSgenome.Hsapiens.UCSC.hg19', character.only = TRUE)\n"
+	rscript += "PTCSpliceRList <- annotatePTC(cuffDB_spliceR, cds=ucscCDS, Hsapiens, PTCDistance=50)\n"
+	rscript += "generateGTF(mySpliceRList, filters=c('geneOK', 'isoOK', 'expressedGenes', 'expressedIso'), scoreMethod='local', useProgressBar=F)\n"
+	rscript += "mySpliceRList <- spliceRPlot(mySpliceRList, evaluate='nr_transcript_pr_gene')\n"
+	rscript += "mySpliceRList <- spliceRPlot(mySpliceRList, evaluate='mean_AS_transcript', asType='ESI')\n"
+	return rscript
 
 def mats(conditions, comp1, comp2, gtf, insert, sd, rlen, mats_program):
 	rev_cond = reverse_dict(conditions)
