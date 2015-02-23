@@ -84,7 +84,10 @@ def create_design_for_R(idict):
 def dexseq_run(conditions, comp1, comp2, gtf):
 	rscript = "suppressPackageStartupMessages(library(DEXSeq))\n"
 	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
-	rscript += "dxd <- DEXSeqDataSetFromHTSeq(as.character(pdata[,2]), sampleData=pdata, design= ~ sample + exon + Condition:exon, flattenedfile={})\n".format(gtf)
+	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp1)
+	rscript += "counts2 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp2)
+	rscript += "new_pdata <- rbind(counts1, counts2)\n"
+	rscript += "dxd <- DEXSeqDataSetFromHTSeq(as.character(new_pdata[,2]), sampleData=new_pdata, design= ~ sample + exon + Condition:exon, flattenedfile={})\n".format(gtf)
 	rscript += "dxd = estimateSizeFactors( dxd )\n"
 	rscript += "dxd = estimateDispersions( dxd )\n"
 	rscript += "dxd = testForDEU( dxd )\n"
@@ -131,6 +134,35 @@ def reverse_dict(idict):
 		inv_map[v].append(k)
 	return inv_map
 
+def seqgsea_count(path, conditions, gtf, paired, orientation):
+	for sample in sorted(conditions):
+		bam_name = os.path.basename(sample)
+		output = re.sub(".bam$", "_seqgsea.count", bam_name)
+		if paired:
+			p = "yes"
+		else:
+			p = "no"
+		command = "python {} -b yes -p {} -s {} {} {} {}".format(path, p, orientation, gtf, sample, output)
+		subprocess.call(command.split())
+
+def run_seqgsea(conditions, comp1, comp2):
+	rscript = 'library("SeqGSEA")\n'
+	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
+	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),1]\n".format(comp1)
+	rscript += "counts2 <- pdata[which(pdata[,2] == '{}'),1]\n".format(comp2)
+	rscript += "RCS <- loadExonCountData(as.character(counts1), as.character(counts2))\n"
+	rscript += "RCS <- exonTestability(RCS, cutoff=5)\n"
+	rscript += "geneTestable <- geneTestability(RCS)\n"
+	rscript += "RCS <- subsetByGenes(RCS, unique(geneID(RCS))[ geneTestable ])\n"
+	rscript += "geneIDs <- unique(geneID(RCS))\n"
+	rscript += "RCS <- estiExonNBstat(RCS)\n"
+	rscript += "RCS <- estiGeneNBstat(RCS)\n"
+	rscript += "perm.times <- 1000\n"
+	rscript += "permuteMat <- genpermuteMat(RCS, times=perm.times)\n"
+	rscript += "RCS <- DSpermute4GSEA(RCS, permuteMat)\n"
+
+
+
 def main():
 	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
@@ -160,6 +192,12 @@ def main():
 	splice_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
 	splice_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
 	splice_parser.add_argument('-o','--output', help='Output directory', required=True)
+
+	seq_parser = subparsers.add_parser('seqGSEA', help="Runs seqGSEA")
+	seq_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
+	seq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
+	seq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
+	seq_parser.add_argument('-o','--orientation', help='Options are yes, no or reverse. Test First!!!', required=True)
 
 	if len(sys.argv)==1:
 		parser.print_help()
@@ -195,6 +233,13 @@ def main():
 
 	elif args["subparser_name"] == "spliceR":
 		rcode = spliceR()
+
+	elif args["subparser_name"] == "seqGSEA":
+		path = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/SeqGSEA/extscripts"
+		command1 = "python {}/prepare_exon_annotation_ensembl.py {} seqGSEA.gff".format(path, args["gtf"])
+	#	subprocess.call(command1.split())
+		count_program = path + "/count_in_exons.py"
+		seqgsea_count(count_program, conditions, "seqGSEA.gff", args["p"], args["orientation"])
 
 main()
 
