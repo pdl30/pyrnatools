@@ -12,6 +12,8 @@ import subprocess
 import sys, re, os
 import argparse
 import ConfigParser
+from multiprocessing import Pool
+import itertools
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}
@@ -26,50 +28,36 @@ def ConfigSectionMap(section, Config):
 			dict1[option] = None
 	return dict1
 
-def miso_index_gtf(gtf):
-	name = re.sub(".gtf$", "", gtf)
-	output_dir = "indexed_{}".format(name)
-	#GTF needs to be in GFF format
-	#Use gtf2gff3.pl and gtf2gff3.cfg in pyrnatools/tools directory for conversion
-	#Not neat for ensembl, still issues with source problems
-	command = "index_gff --index {} {}".format(gtf, output_dir)
-	subprocess.call(command.split())
-	return output_dir
-
 def miso_run(conditions, index, insert, sd, read_len):
 	for sample in sorted(conditions):
 		name = os.path.basename(sample)
 		output_dir = re.sub(".bam$", "_miso", name)
-	#	if os.path.isdir(output_dir):
-	#		print "Miso directory already exists, will not overwrite!"
 		if insert:
 			command = "miso --run {} {} --output-dir {} --read-len {} --paired-end {} {}".format(index, sample, output_dir, read_len, insert, sd)
-			#print command
 			command2 = "summarize_miso --summarize-samples {} {}".format(output_dir, output_dir)
+			print command
 			print command2
+			subprocess.call(command.split())
+			subprocess.call(command2.split())
 		else:
 			command = "miso --run {} {} --output-dir {} --read-len {}".format(index, sample, output_dir, read_len)
-			#print command
 			command2 = "summarize_miso --summarize-samples {} {}".format(output_dir, output_dir)
+			print command
 			print command2
-			#subprocess.call(command.split())
+			subprocess.call(command.split())
+			subprocess.call(command2.split())
 
-def dexseq_prep(dexseq_dir, gtf, conditions, paired, orientation):
+def dexseq_prep(sample, dexseq_dir, gtf, paired, orientation):
 	#This prepares annotation and counts bam files
 	count_program = os.path.join(dexseq_dir, "python_scripts/dexseq_count.py")
-	anno_program = os.path.join(dexseq_dir, "python_scripts/deseq_prepare_annotation.py")
-	#gff = re.sub(".gtf$", ".gff", gtf)
-	#command1 = "python {} {} {}".format(anno_program, gtf, gff)
-
-	for sample in sorted(conditions):
-		bam_name = os.path.basename(sample)
-		output = re.sub(".bam$", "_dexseq.count", bam_name)
-		if paired:
-			p = "yes"
-		else:
-			p = "no"
-		command = "python {} -f bam -p {} -s {} {} {} {}".format(count_program, p, orientation, gtf, sample, output)
-		subprocess.call(command.split())
+	bam_name = os.path.basename(sample)
+	output = re.sub(".bam$", "_dexseq.count", bam_name)
+	if paired:
+		p = "yes"
+	else:
+		p = "no"
+	command = "python {} -f bam -p {} -s {} {} {} {}".format(count_program, p, orientation, gtf, sample, output)
+	subprocess.call(command.split())
 
 def create_design_for_R(idict):
 	output = open("tmp_design.txt", "w")
@@ -92,6 +80,8 @@ def dexseq_run(conditions, comp1, comp2, gtf):
 	rscript += "dxd = estimateDispersions( dxd )\n"
 	rscript += "dxd = testForDEU( dxd )\n"
 	rscript += "dxr1 = DEXSeqResults( dxd )\n"
+	rscript += "write.table(dxr1, file='{}_vs_{}.tsv', sep='\\t', quote=F)\n".format(comp1, comp2)
+	return rscript
 
 def seqgsea_run(conditions, comp1, comp2, gtf):
 	rscript = "suppressPackageStartupMessages(library('SeqGSEA'))\n"
@@ -153,16 +143,15 @@ def reverse_dict(idict):
 		inv_map[v].append(k)
 	return inv_map
 
-def seqgsea_count(path, conditions, gtf, paired, orientation):
-	for sample in sorted(conditions):
-		bam_name = os.path.basename(sample)
-		output = re.sub(".bam$", "_seqgsea.count", bam_name)
-		if paired:
-			p = "yes"
-		else:
-			p = "no"
-		command = "python {} -b yes -p {} -s {} {} {} {}".format(path, p, orientation, gtf, sample, output)
-		subprocess.call(command.split())
+def seqgsea_count(sample, path, gtf, paired, orientation):
+	bam_name = os.path.basename(sample)
+	output = re.sub(".bam$", "_seqgsea.count", bam_name)
+	if paired:
+		p = "yes"
+	else:
+		p = "no"
+	command = "python {} -b yes -p {} -s {} {} {} {}".format(path, p, orientation, gtf, sample, output)
+	subprocess.call(command.split())
 
 def run_seqgsea(conditions, comp1, comp2):
 	rscript = 'library("SeqGSEA")\n'
@@ -180,21 +169,41 @@ def run_seqgsea(conditions, comp1, comp2):
 	rscript += "permuteMat <- genpermuteMat(RCS, times=perm.times)\n"
 	rscript += "RCS <- DSpermute4GSEA(RCS, permuteMat)\n"
 
+def run_rcode(rscript, name):
+	rcode = open(name, "w")
+	rcode.write(rscript)
+	rcode.close()
+	try:
+		subprocess.call(['Rscript', name])
+	except:
+		error("Error in running {}\n".format(name))
+		error("Error: %s\n" % str(sys.exc_info()[1]))
+		error( "[Exception type: %s, raised in %s:%d]\n" % ( sys.exc_info()[1].__class__.__name__, 
+		os.path.basename(traceback.extract_tb( sys.exc_info()[2] )[-1][0]), 
+		traceback.extract_tb( sys.exc_info()[2] )[-1][1] ) )
+		sys.exit(1)
+
+def dexseq_prep_fun(args):
+	return dexseq_prep(*args)
+
+def seqgsea_count_fun(args):
+	return seqgsea_count(*args)
+
 def main():
 	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
 
-	miso_parser = subparsers.add_parser('miso', help="Runs MISO")
-	miso_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=True)
-	miso_parser.add_argument('-g','--gtf', help='GTF file for indexing', required=False)
+	miso_parser = subparsers.add_parser('miso', help="Runs MISO. Does not run compare_samples. Please provide already processed GTF files using index_gff")
+	miso_parser.add_argument('-c','--config', help='Config file containing Conditions', required=True)
 	miso_parser.add_argument('-i','--index', help='Already indexed GTF directory', required=False)
 	miso_parser.add_argument('-n','--insert', help='Insert size', default=None, required=False)
 	miso_parser.add_argument('-s','--sd', help='SD', required=False)
 	miso_parser.add_argument('-r','--len', help='read length', required=False)
 
 	dexseq_parser = subparsers.add_parser('dexseq', help="Runs DEXSEQ")
-	dexseq_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
-	dexseq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
+	dexseq_parser.add_argument('-c','--config', help='Config file containing Conditions and Comparisons, please see documentation for usage!', required=True)
+	dexseq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq using deseq_prepare_annotation.py', required=True)
+	dexseq_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
 	dexseq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
 	dexseq_parser.add_argument('-o','--orientation', help='Options are yes, no or reverse. Test First!!!', required=True)
 
@@ -205,14 +214,15 @@ def main():
 	mats_parser.add_argument('-s','--sd', help='SD', required=False)
 	mats_parser.add_argument('-r','--len', help='read length', required=False)
 	
-	splice_parser = subparsers.add_parser('spliceR', help="Runs spliceR")
-	splice_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
-	splice_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
-	splice_parser.add_argument('-o','--output', help='Output directory', required=True)
+#	splice_parser = subparsers.add_parser('spliceR', help="Runs spliceR")
+#	splice_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
+#	splice_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
+#	splice_parser.add_argument('-o','--output', help='Output directory', required=True)
 
 	seq_parser = subparsers.add_parser('seqGSEA', help="Runs seqGSEA")
 	seq_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
-	seq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
+	seq_parser.add_argument('-g','--gtf', help='GTF file formatted by prepare_exon_annotation_ensembl.py script', required=True)
+	seq_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
 	seq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
 	seq_parser.add_argument('-o','--orientation', help='Options are yes, no or reverse. Test First!!!', required=True)
 
@@ -227,18 +237,21 @@ def main():
 	conditions = ConfigSectionMap("Conditions", Config)
 	
 	if args["subparser_name"] == "miso":	
-		if args["gtf"]:
-			index = miso_index_gtf(args["gtf"])
-		elif args["index"]:
-			index = args["index"]
-		else:
-			raise Exception("Please provide either GTF or indexed GTF!")
 		miso_run(conditions, args["index"], args["insert"], args["sd"], args["len"])
 
 	elif args["subparser_name"] == "dexseq":
-		conditions = ConfigSectionMap("Conditions", Config)
 		dexseq_dir = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/DEXSeq"
-		dexseq_prep(dexseq_dir, args["gtf"], conditions, args["p"], args["orientation"])
+		pool = Pool(int(args["threads"]))
+		pool.map(dexseq_prep_fun, itertools.izip(list(conditions.keys()), itertools.repeat(dexseq_dir), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
+			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
+		pool.close()
+		pool.join()
+		comparisons = ConfigSectionMap("Comparisons", Config)
+		for comp in comparisons:
+				c = comparisons[comp].split(",")
+				comps = [x.strip(' ') for x in c]
+				rscipt = dexseq_run(conditions, comps[0], comps[1], gtf)
+				run_rcode(rscript, "dexseq.R")
 
 	elif args["subparser_name"] == "mats":
 		mats_program = "/home/patrick/Programs/MATS.3.0.8/RNASeq-MATS.py"
@@ -248,15 +261,17 @@ def main():
 			comps = [x.strip(' ') for x in c]
 			mats(conditions, comps[0], comps[1], args["gtf"], args["insert"], args["sd"], args["len"], mats_program)
 
-	elif args["subparser_name"] == "spliceR":
-		rcode = spliceR()
-
 	elif args["subparser_name"] == "seqGSEA":
 		path = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/SeqGSEA/extscripts"
-		command1 = "python {}/prepare_exon_annotation_ensembl.py {} seqGSEA.gff".format(path, args["gtf"])
-	#	subprocess.call(command1.split())
 		count_program = path + "/count_in_exons.py"
-		seqgsea_count(count_program, conditions, "seqGSEA.gff", args["p"], args["orientation"])
-
-main()
-
+		pool = Pool(int(args["threads"]))
+		pool.map(dexseq_prep_fun, itertools.izip(list(conditions.keys()), itertools.repeat(count_program), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
+			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
+		pool.close()
+		pool.join()
+		comparisons = ConfigSectionMap("Comparisons", Config)
+		for comp in comparisons:
+			c = comparisons[comp].split(",")
+			comps = [x.strip(' ') for x in c]
+			rscipt = run_seqgsea(conditions, comps[0], comps[1])
+			run_rcode(rscript, "dexseq.R")
