@@ -92,7 +92,26 @@ def dexseq_run(conditions, comp1, comp2, gtf):
 	rscript += "dxd = estimateDispersions( dxd )\n"
 	rscript += "dxd = testForDEU( dxd )\n"
 	rscript += "dxr1 = DEXSeqResults( dxd )\n"
-	
+
+def seqgsea_run(conditions, comp1, comp2, gtf):
+	rscript = "suppressPackageStartupMessages(library('SeqGSEA'))\n"
+	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
+	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp1)
+	rscript += "counts2 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp2)
+	rscript += "RCS <- loadExonCountData(as.character(counts1), as.character(counts2))\n"
+	rscript += "RCS <- exonTestability(RCS, cutoff=5)\n"
+	rscript += "geneTestable <- geneTestability(RCS)\n"
+	rscript += "RCS <- subsetByGenes(RCS, unique(geneID(RCS))[ geneTestable ])\n"
+	rscript += "geneIDs <- unique(geneID(RCS))\n"
+	rscript += "RCS <- estiExonNBstat(RCS)\n"
+	rscript += "RCS <- estiGeneNBstat(RCS)\n"
+	rscript += "perm.times <- 1000\n"
+	rscript += "permuteMat <- genpermuteMat(RCS, times=perm.times)\n"
+	rscript += "RCS <- DSpermute4GSEA(RCS, permuteMat)\n"
+	rscript += "DSscore.normFac <- normFactor(RCS@permute_NBstat_gene)\n"
+	rscript += "DSscore <- scoreNormalization(RCS@featureData_gene$NBstat, DSscore.normFac)\n"
+	rscript += "DSscore.perm <- scoreNormalization(RCS@permute_NBstat_gene, DSscore.normFac)\n"
+	rscript += "RCS <- DSpermutePval(RCS, permuteMat)\n"
 
 def spliceR(idir, gtf, genome):
 	#Uses cuffdiff directories
@@ -160,8 +179,6 @@ def run_seqgsea(conditions, comp1, comp2):
 	rscript += "perm.times <- 1000\n"
 	rscript += "permuteMat <- genpermuteMat(RCS, times=perm.times)\n"
 	rscript += "RCS <- DSpermute4GSEA(RCS, permuteMat)\n"
-
-
 
 def main():
 	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
