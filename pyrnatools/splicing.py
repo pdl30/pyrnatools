@@ -83,7 +83,7 @@ def dexseq_run(conditions, comp1, comp2, gtf):
 	rscript += "write.table(dxr1, file='{}_vs_{}.tsv', sep='\\t', quote=F)\n".format(comp1, comp2)
 	return rscript
 
-def seqgsea_run(conditions, comp1, comp2, gtf):
+def seqgsea_run(conditions, comp1, comp2):
 	rscript = "suppressPackageStartupMessages(library('SeqGSEA'))\n"
 	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
 	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp1)
@@ -250,7 +250,7 @@ def main():
 		for comp in comparisons:
 				c = comparisons[comp].split(",")
 				comps = [x.strip(' ') for x in c]
-				rscipt = dexseq_run(conditions, comps[0], comps[1], gtf)
+				rscipt = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
 				run_rcode(rscript, "dexseq.R")
 
 	elif args["subparser_name"] == "mats":
