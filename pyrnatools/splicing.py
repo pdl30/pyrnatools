@@ -250,7 +250,7 @@ def main():
 		for comp in comparisons:
 				c = comparisons[comp].split(",")
 				comps = [x.strip(' ') for x in c]
-				rscipt = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
+				rscript = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
 				run_rcode(rscript, "dexseq.R")
 
 	elif args["subparser_name"] == "mats":
