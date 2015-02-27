@@ -102,6 +102,7 @@ def seqgsea_run(conditions, comp1, comp2):
 	rscript += "DSscore <- scoreNormalization(RCS@featureData_gene$NBstat, DSscore.normFac)\n"
 	rscript += "DSscore.perm <- scoreNormalization(RCS@permute_NBstat_gene, DSscore.normFac)\n"
 	rscript += "RCS <- DSpermutePval(RCS, permuteMat)\n"
+	return rscript
 
 def spliceR(idir, gtf, genome):
 	#Uses cuffdiff directories
