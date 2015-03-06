@@ -29,21 +29,7 @@ def write_deseq(ifile, sample_dict, cond1, cond2, padj):
 	rscript += "write.table(rnaseq_res, file='{0}_vs_{1}_deseq2_analysis.tsv', sep='\\t', quote=F)\n".format(cond1, cond2)
 	return rscript
 
-def print_norm_counts(counts_file):
-	rscript =  "library(DESeq2)\n"
-	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
-	#Make sure they match!
-	rscript += "counts <- read.table('{}', sep='\\t', header=T, row.names=1)\n".format(counts_file)
-	rscript += "rnaseq_dds <- DESeqDataSetFromMatrix(countData = counts, colData = data.frame(pdata), design = ~ condition)\n"
-	rscript += "rnaseq_dds$condition <- factor(rnaseq_dds$condition, levels=unique(pdata[,3]))\n"
-	rscript += "rnaseq_dds <- DESeq(rnaseq_dds)\n"
-	rscript += "factors <- sizeFactors(rnaseq_dds)\n"
-	rscript += "names(factors) <- rnaseq_dds$condition\n"
-	rscript += "co <- counts(rnaseq_dds, normalized=TRUE)\n"
-	rscript += "colnames(co) <- colnames(counts)\n"
-	rscript += "write.table(factors, file='size_factors.tsv', sep='\\t', quote=F, row.names=F)\n"
-	rscript += "write.table(co, file='normalised_counts.tsv', sep='\\t', quote=F)\n"
-	return rscript
+
 
 #def html_report():
 #	rscript =  "library(ReportingTools)\n"

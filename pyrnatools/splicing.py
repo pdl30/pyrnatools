@@ -28,20 +28,20 @@ def ConfigSectionMap(section, Config):
 			dict1[option] = None
 	return dict1
 
-def miso_run(conditions, index, insert, sd, read_len):
+def miso_run(conditions, index, event, insert, sd, read_len):
 	for sample in sorted(conditions):
 		name = os.path.basename(sample)
 		output_dir = re.sub(".bam$", "_miso", name)
 		if insert:
-			command = "miso --run {} {} --output-dir {} --read-len {} --paired-end {} {}".format(index, sample, output_dir, read_len, insert, sd)
-			command2 = "summarize_miso --summarize-samples {} {}".format(output_dir, output_dir)
+			command = "miso --run {} {} --output-dir {}_{} --read-len {} --paired-end {} {}".format(index, sample, output_dir, event, read_len, insert, sd)
+			command2 = "summarize_miso --summarize-samples {0}_{1} {0}_{1}".format(output_dir, event)
 			print command
 			print command2
 			subprocess.call(command.split())
 			subprocess.call(command2.split())
 		else:
-			command = "miso --run {} {} --output-dir {} --read-len {}".format(index, sample, output_dir, read_len)
-			command2 = "summarize_miso --summarize-samples {} {}".format(output_dir, output_dir)
+			command = "miso --run {} {} --output-dir {}_{} --read-len {}".format(index, sample, output_dir,event, read_len)
+			command2 = "summarize_miso --summarize-samples {0}_{1} {0}_{1}".format(output_dir, event)
 			print command
 			print command2
 			subprocess.call(command.split())
@@ -200,6 +200,7 @@ def main():
 	miso_parser.add_argument('-n','--insert', help='Insert size', default=None, required=False)
 	miso_parser.add_argument('-s','--sd', help='SD', required=False)
 	miso_parser.add_argument('-r','--len', help='read length', required=False)
+	miso_parser.add_argument('-a','--name', help='AS event name', required=False)
 
 	dexseq_parser = subparsers.add_parser('dexseq', help="Runs DEXSEQ")
 	dexseq_parser.add_argument('-c','--config', help='Config file containing Conditions and Comparisons, please see documentation for usage!', required=True)
@@ -238,7 +239,7 @@ def main():
 	conditions = ConfigSectionMap("Conditions", Config)
 	
 	if args["subparser_name"] == "miso":	
-		miso_run(conditions, args["index"], args["insert"], args["sd"], args["len"])
+		miso_run(conditions, args["index"], args["name"], args["insert"], args["sd"], args["len"])
 
 	elif args["subparser_name"] == "dexseq":
 		dexseq_dir = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/DEXSeq"
@@ -247,12 +248,12 @@ def main():
 			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
 		pool.close()
 		pool.join()
-		comparisons = ConfigSectionMap("Comparisons", Config)
-		for comp in comparisons:
-				c = comparisons[comp].split(",")
-				comps = [x.strip(' ') for x in c]
-				rscript = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
-				run_rcode(rscript, "dexseq.R")
+	#	comparisons = ConfigSectionMap("Comparisons", Config)
+	#	for comp in comparisons:
+	#			c = comparisons[comp].split(",")
+	#			comps = [x.strip(' ') for x in c]
+	#			rscript = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
+	#			run_rcode(rscript, "dexseq.R")
 
 	elif args["subparser_name"] == "mats":
 		mats_program = "/home/patrick/Programs/MATS.3.0.8/RNASeq-MATS.py"
@@ -266,13 +267,15 @@ def main():
 		path = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/SeqGSEA/extscripts"
 		count_program = path + "/count_in_exons.py"
 		pool = Pool(int(args["threads"]))
-		pool.map(dexseq_prep_fun, itertools.izip(list(conditions.keys()), itertools.repeat(count_program), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
+		pool.map(seqgsea_count_fun, itertools.izip(list(conditions.keys()), itertools.repeat(count_program), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
 			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
 		pool.close()
 		pool.join()
-		comparisons = ConfigSectionMap("Comparisons", Config)
-		for comp in comparisons:
-			c = comparisons[comp].split(",")
-			comps = [x.strip(' ') for x in c]
-			rscipt = run_seqgsea(conditions, comps[0], comps[1])
-			run_rcode(rscript, "dexseq.R")
+	#	comparisons = ConfigSectionMap("Comparisons", Config)
+	#	for comp in comparisons:
+	#		c = comparisons[comp].split(",")
+	#		comps = [x.strip(' ') for x in c]
+	##		rscipt = run_seqgsea(conditions, comps[0], comps[1])
+		#	run_rcode(rscript, "dexseq.R")
+
+main()
