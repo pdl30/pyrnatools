@@ -44,7 +44,7 @@ def find_adapters(fq):
 	return adapters
 
 def cut_adapters(paired, adapters, fq1, outdir, rev_adapters=None, fq2=None):
-	f = open('/dev/null', 'w')
+	f = open('{}/trim_report.txt'.format(outdir), 'w')
 	adapt1 = ""
 	for i in adapters:
 		adapters = "-a {} ".format(i)
@@ -122,6 +122,7 @@ def star_unique(samfile, outfile):
 				if word[4] == "255":
 					if word[11] == "NH:i:1":
 						output.write("{}\n".format(line)),
+						
 def main():
 	parser = argparse.ArgumentParser(description='RNA-seq alignment\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
