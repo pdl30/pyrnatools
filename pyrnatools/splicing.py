@@ -35,20 +35,16 @@ def miso_run(conditions, index, event, insert, sd, read_len):
 		if insert:
 			command = "miso --run {} {} --output-dir {}_{} --read-len {} --paired-end {} {}".format(index, sample, output_dir, event, read_len, insert, sd)
 			command2 = "summarize_miso --summarize-samples {0}_{1} {0}_{1}".format(output_dir, event)
-			print command
-			print command2
 			subprocess.call(command.split())
 			subprocess.call(command2.split())
 		else:
 			command = "miso --run {} {} --output-dir {}_{} --read-len {}".format(index, sample, output_dir,event, read_len)
 			command2 = "summarize_miso --summarize-samples {0}_{1} {0}_{1}".format(output_dir, event)
-			print command
-			print command2
 			subprocess.call(command.split())
 			subprocess.call(command2.split())
 
 def dexseq_prep(sample, dexseq_dir, gtf, paired, orientation):
-	#This prepares annotation and counts bam files
+	#This prepares annotation and counts bam files. Not sure if working correctly!!!
 	count_program = os.path.join(dexseq_dir, "python_scripts/dexseq_count.py")
 	bam_name = os.path.basename(sample)
 	output = re.sub(".bam$", "_dexseq.count", bam_name)
@@ -105,7 +101,7 @@ def seqgsea_run(conditions, comp1, comp2):
 	return rscript
 
 def spliceR(idir, gtf, genome):
-	#Uses cuffdiff directories
+	#Uses cuffdiff directories. Not working currently, giving errors
 	rscript = "library(spliceR)\n"
 	rscript += "cuffDB <- readCufflinks(dir={},gtf={},genome='{}')\n"
 	rscript += "cuffDB_spliceR <- prepareCuff(cuffDB)\n"
@@ -155,6 +151,7 @@ def seqgsea_count(sample, path, gtf, paired, orientation):
 	subprocess.call(command.split())
 
 def run_seqgsea(conditions, comp1, comp2):
+	#Current problems is that this takes fecking ages
 	rscript = 'library("SeqGSEA")\n'
 	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
 	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),1]\n".format(comp1)
@@ -191,7 +188,7 @@ def seqgsea_count_fun(args):
 	return seqgsea_count(*args)
 
 def main():
-	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
+	parser = argparse.ArgumentParser(description='Overview of a few programs for Splicing analysis\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
 
 	miso_parser = subparsers.add_parser('miso', help="Runs MISO. Does not run compare_samples. Please provide already processed GTF files using index_gff")
@@ -204,6 +201,7 @@ def main():
 
 	dexseq_parser = subparsers.add_parser('dexseq', help="Runs DEXSEQ")
 	dexseq_parser.add_argument('-c','--config', help='Config file containing Conditions and Comparisons, please see documentation for usage!', required=True)
+	dexseq_parser.add_argument('-r', action='store_true', help='Will run counting instead of differential analysis', required=False)
 	dexseq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq using deseq_prepare_annotation.py', required=True)
 	dexseq_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
 	dexseq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
@@ -221,12 +219,12 @@ def main():
 #	splice_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
 #	splice_parser.add_argument('-o','--output', help='Output directory', required=True)
 
-	seq_parser = subparsers.add_parser('seqGSEA', help="Runs seqGSEA")
-	seq_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
-	seq_parser.add_argument('-g','--gtf', help='GTF file formatted by prepare_exon_annotation_ensembl.py script', required=True)
-	seq_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
-	seq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
-	seq_parser.add_argument('-o','--orientation', help='Options are yes, no or reverse. Test First!!!', required=True)
+#	seq_parser = subparsers.add_parser('seqGSEA', help="Runs seqGSEA")
+#	seq_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
+#	seq_parser.add_argument('-g','--gtf', help='GTF file formatted by prepare_exon_annotation_ensembl.py script', required=True)
+#	seq_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
+#	seq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
+#	seq_parser.add_argument('-o','--orientation', help='Options are yes, no or reverse. Test First!!!', required=True)
 
 	if len(sys.argv)==1:
 		parser.print_help()
@@ -243,17 +241,19 @@ def main():
 
 	elif args["subparser_name"] == "dexseq":
 		dexseq_dir = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/DEXSeq"
-		pool = Pool(int(args["threads"]))
-		pool.map(dexseq_prep_fun, itertools.izip(list(conditions.keys()), itertools.repeat(dexseq_dir), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
-			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
-		pool.close()
-		pool.join()
-	#	comparisons = ConfigSectionMap("Comparisons", Config)
-	#	for comp in comparisons:
-	#			c = comparisons[comp].split(",")
-	#			comps = [x.strip(' ') for x in c]
-	#			rscript = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
-	#			run_rcode(rscript, "dexseq.R")
+		if args["r"]:
+			pool = Pool(int(args["threads"]))
+			pool.map(dexseq_prep_fun, itertools.izip(list(conditions.keys()), itertools.repeat(dexseq_dir), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
+				itertools.repeat(args["orientation"]))) ##Running annotation in parallel
+			pool.close()
+			pool.join()
+		else:
+			comparisons = ConfigSectionMap("Comparisons", Config)
+			for comp in comparisons:
+					c = comparisons[comp].split(",")
+					comps = [x.strip(' ') for x in c]
+					rscript = dexseq_run(conditions, comps[0], comps[1], args["gtf"])
+					run_rcode(rscript, "dexseq.R")
 
 	elif args["subparser_name"] == "mats":
 		mats_program = "/home/patrick/Programs/MATS.3.0.8/RNASeq-MATS.py"
@@ -263,19 +263,17 @@ def main():
 			comps = [x.strip(' ') for x in c]
 			mats(conditions, comps[0], comps[1], args["gtf"], args["insert"], args["sd"], args["len"], mats_program)
 
-	elif args["subparser_name"] == "seqGSEA":
-		path = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/SeqGSEA/extscripts"
-		count_program = path + "/count_in_exons.py"
-		pool = Pool(int(args["threads"]))
-		pool.map(seqgsea_count_fun, itertools.izip(list(conditions.keys()), itertools.repeat(count_program), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
-			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
-		pool.close()
-		pool.join()
+#	elif args["subparser_name"] == "seqGSEA":
+#		path = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/SeqGSEA/extscripts"
+#		count_program = path + "/count_in_exons.py"
+#		pool = Pool(int(args["threads"]))
+#		pool.map(seqgsea_count_fun, itertools.izip(list(conditions.keys()), itertools.repeat(count_program), itertools.repeat(args["gtf"]), itertools.repeat(args["p"]),
+#			itertools.repeat(args["orientation"]))) ##Running annotation in parallel
+#		pool.close()
+#		pool.join()
 	#	comparisons = ConfigSectionMap("Comparisons", Config)
 	#	for comp in comparisons:
 	#		c = comparisons[comp].split(",")
 	#		comps = [x.strip(' ') for x in c]
 	##		rscipt = run_seqgsea(conditions, comps[0], comps[1])
 		#	run_rcode(rscript, "dexseq.R")
-
-main()
