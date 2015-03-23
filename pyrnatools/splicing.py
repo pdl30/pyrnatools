@@ -277,3 +277,4 @@ def main():
 	#		comps = [x.strip(' ') for x in c]
 	##		rscipt = run_seqgsea(conditions, comps[0], comps[1])
 		#	run_rcode(rscript, "dexseq.R")
+main()
