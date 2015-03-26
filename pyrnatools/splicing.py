@@ -53,6 +53,7 @@ def dexseq_prep(sample, dexseq_dir, gtf, paired, orientation):
 	else:
 		p = "no"
 	command = "python {} -f bam -p {} -s {} {} {} {}".format(count_program, p, orientation, gtf, sample, output)
+	#python dexseq_count.py -s reverse Homo_sapiens.GRCh37.74.ucsc_dexseq.gff  /accepted_hits.bam 75K.DIF.1_1.fq.mm10.count -f bam -p yes
 	subprocess.call(command.split())
 
 def create_design_for_R(idict):
