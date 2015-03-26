@@ -72,11 +72,12 @@ def dexseq_run(conditions, comp1, comp2, gtf):
 	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp1)
 	rscript += "counts2 <- pdata[which(pdata[,2] == '{}'),]\n".format(comp2)
 	rscript += "new_pdata <- rbind(counts1, counts2)\n"
-	rscript += "dxd <- DEXSeqDataSetFromHTSeq(as.character(new_pdata[,2]), sampleData=new_pdata, design= ~ sample + exon + Condition:exon, flattenedfile={})\n".format(gtf)
+	rscript += "dxd <- DEXSeqDataSetFromHTSeq(as.character(new_pdata[,2]), sampleData=new_pdata, design= ~ sample + exon + condition:exon, flattenedfile={})\n".format(gtf)
 	rscript += "dxd = estimateSizeFactors( dxd )\n"
 	rscript += "dxd = estimateDispersions( dxd )\n"
 	rscript += "dxd = testForDEU( dxd )\n"
 	rscript += "dxr1 = DEXSeqResults( dxd )\n"
+	rscript += "DEXSeqHTML( dxr1, FDR=0.1, color=c('#FF000080', '#0000FF80') )\n"
 	rscript += "write.table(dxr1, file='{}_vs_{}.tsv', sep='\\t', quote=F)\n".format(comp1, comp2)
 	return rscript
 
@@ -141,33 +142,6 @@ def reverse_dict(idict):
 		inv_map[v].append(k)
 	return inv_map
 
-def seqgsea_count(sample, path, gtf, paired, orientation):
-	bam_name = os.path.basename(sample)
-	output = re.sub(".bam$", "_seqgsea.count", bam_name)
-	if paired:
-		p = "yes"
-	else:
-		p = "no"
-	command = "python {} -b yes -p {} -s {} {} {} {}".format(path, p, orientation, gtf, sample, output)
-	subprocess.call(command.split())
-
-def run_seqgsea(conditions, comp1, comp2):
-	#Current problems is that this takes fecking ages
-	rscript = 'library("SeqGSEA")\n'
-	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
-	rscript += "counts1 <- pdata[which(pdata[,2] == '{}'),1]\n".format(comp1)
-	rscript += "counts2 <- pdata[which(pdata[,2] == '{}'),1]\n".format(comp2)
-	rscript += "RCS <- loadExonCountData(as.character(counts1), as.character(counts2))\n"
-	rscript += "RCS <- exonTestability(RCS, cutoff=5)\n"
-	rscript += "geneTestable <- geneTestability(RCS)\n"
-	rscript += "RCS <- subsetByGenes(RCS, unique(geneID(RCS))[ geneTestable ])\n"
-	rscript += "geneIDs <- unique(geneID(RCS))\n"
-	rscript += "RCS <- estiExonNBstat(RCS)\n"
-	rscript += "RCS <- estiGeneNBstat(RCS)\n"
-	rscript += "perm.times <- 1000\n"
-	rscript += "permuteMat <- genpermuteMat(RCS, times=perm.times)\n"
-	rscript += "RCS <- DSpermute4GSEA(RCS, permuteMat)\n"
-
 def run_rcode(rscript, name):
 	rcode = open(name, "w")
 	rcode.write(rscript)
@@ -185,8 +159,6 @@ def run_rcode(rscript, name):
 def dexseq_prep_fun(args):
 	return dexseq_prep(*args)
 
-def seqgsea_count_fun(args):
-	return seqgsea_count(*args)
 
 def main():
 	parser = argparse.ArgumentParser(description='Overview of a few programs for Splicing analysis\n')
@@ -200,7 +172,7 @@ def main():
 	miso_parser.add_argument('-r','--len', help='read length', required=False)
 	miso_parser.add_argument('-a','--name', help='AS event name', required=False)
 
-	dexseq_parser = subparsers.add_parser('dexseq', help="Runs DEXSEQ")
+	dexseq_parser = subparsers.add_parser('dexseq', help="Runs DEXSEQ, run each comparison in a different directory")
 	dexseq_parser.add_argument('-c','--config', help='Config file containing Conditions and Comparisons, please see documentation for usage!', required=True)
 	dexseq_parser.add_argument('-r', action='store_true', help='Will run counting instead of differential analysis', required=False)
 	dexseq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq using deseq_prepare_annotation.py', required=True)
