@@ -121,8 +121,27 @@ def run_rcode(rscript, name):
 		traceback.extract_tb( sys.exc_info()[2] )[-1][1] ) )
 		sys.exit(1)
 
+def splice_graph_prep(bam_file):
+	bam_name = os.path.basename(bam_file)
+	ofolder = bam_name.strip(".bam$")
+	if not os.path.isdir(ofolder):
+		os.mkdir(ofolder)
+	os.chdir(ofolder)
+	gtf = "/home/patrick/72_roberto_splicing/annotation/Homo_sapiens.GRCh37.74.ucsc.gtf"
+	fa = "/home/patrick/Reference_Genomes/hg19/UCSC/Chrom_fa/ucsc_hg19.fa"
+	command = "sam_filter.py {} /home/patrick/Programs/SpliceGrapher-0.2.4/classifiers/Homo_sapiens.zip -f {} -m {} -o {}_filt.sam\n".format(bam_file, fa, gtf, ofolder)
+	print command
+	subprocess.call(command.split())
+	command2 = "predict_graphs.py {}_filt.sam -m {} -d predictions".format(ofolder, gtf)
+	print command2
+	subprocess.call(command2.split())
+
+
 def dexseq_prep_fun(args):
 	return dexseq_prep(*args)
+
+def spliceg_fun(args):
+	return splice_graph_prep(*args)
 
 def main():
 	parser = argparse.ArgumentParser(description='Overview of a few programs for Splicing analysis\n')
@@ -150,6 +169,12 @@ def main():
 	mats_parser.add_argument('-n','--insert', help='Insert size, use for paired end data. In order to make things simple, will assume all bams are the same', default=None, required=False)
 	mats_parser.add_argument('-s','--sd', help='SD', required=False)
 	mats_parser.add_argument('-r','--len', help='read length', required=False)
+
+	splice_parser = subparsers.add_parser('spliceG', help="Runs Splicegrapher")
+	splice_parser.add_argument('-c','--config', help='Config file containing bam files, please see documentation for usage!', required=True)
+	splice_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
+	#splice_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq', required=True)
+
 	if len(sys.argv)==1:
 		parser.print_help()
 		sys.exit(1)
@@ -162,6 +187,14 @@ def main():
 	
 	if args["subparser_name"] == "miso":	
 		miso_run(conditions, args["index"], args["name"], args["insert"], args["sd"], args["len"])
+
+	elif args["subparser_name"] == "spliceG":
+		pool = Pool(int(args["threads"]))
+		pool.map(spliceg_fun, itertools.izip(list(conditions.keys()))) ##Running annotation in parallel
+		pool.close()
+		pool.join()
+		#for bam in sorted(conditions):
+		#	splice_graph_prep(bam)
 
 	elif args["subparser_name"] == "dexseq":
 		dexseq_dir = "/raid/home/patrick/R/x86_64-pc-linux-gnu-library/3.1/DEXSeq"
@@ -187,3 +220,5 @@ def main():
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
 			mats(conditions, comps[0], comps[1], args["gtf"], args["insert"], args["sd"], args["len"], mats_program)
+
+main()
