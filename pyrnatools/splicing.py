@@ -122,6 +122,7 @@ def run_rcode(rscript, name):
 		sys.exit(1)
 
 def splice_graph_prep(bam_file):
+	orig_path = os.getcwd()
 	bam_name = os.path.basename(bam_file)
 	ofolder = bam_name.strip(".bam$")
 	if not os.path.isdir(ofolder):
@@ -132,10 +133,12 @@ def splice_graph_prep(bam_file):
 	command = "sam_filter.py {} /home/patrick/Programs/SpliceGrapher-0.2.4/classifiers/Homo_sapiens.zip -f {} -m {} -o {}_filt.sam\n".format(bam_file, fa, gtf, ofolder)
 	print command
 	subprocess.call(command.split())
+	if not os.path.isdir("predictions"):
+		os.mkdir("predictions")
 	command2 = "predict_graphs.py {}_filt.sam -m {} -d predictions".format(ofolder, gtf)
 	print command2
 	subprocess.call(command2.split())
-
+	os.chdir(orig_path)
 
 def dexseq_prep_fun(args):
 	return dexseq_prep(*args)
