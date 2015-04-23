@@ -160,9 +160,9 @@ def main():
 	if args["pair"][0].endswith(".fq"):
 		fq = True
 	name = run_bowtie(args["pair"][0], args["pair"][1], args["index"], fq)
-	print name
 	if args["subparser_name"] == "insert":
-		insert = get_insert(name)
+		sort_index(name)
+		insert = pysam_insert_size(name)
 		print "mate inner distance = {}\nmate standard deviation = {}".format(insert[0], insert[1])
 	elif args["subparser_name"] == "type":
 		path1 = pkg_resources.resource_filename('pyrnapipe', 'data/')
@@ -172,3 +172,5 @@ def main():
 			print "Orientation = reverse"
 		else:
 			print "Orientation = yes"
+
+main()
