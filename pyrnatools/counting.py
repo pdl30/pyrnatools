@@ -91,6 +91,15 @@ def convert_gtf_to_ucsc(igtf):
 	a.close()
 	return a.name
 
+def infer(bam, genome):
+	path1 = "/home/patrick/Reference_Genomes/pyngspipe_references/"
+	if genome == "hg19":
+		refbed = path1 + "hg19/hg19_Ensembl.bed"
+	elif genome == "mm10":
+		refbed = path1 + "mm10/mm10_Ensembl.bed"
+	infercommand = "infer_experiment.py -i {} -r {} > infer_res.txt".format(bam, refbed)
+	subprocess.call(infercommand, shell=True)
+
 def main():
 	parser = argparse.ArgumentParser(description='Counts features from BAM files\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name")
@@ -110,6 +119,10 @@ def main():
 	gfold_parser.add_argument('-n',action='store_true', help='Gapdh Normlisation', required=False)
 	gfold_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
+
+	infer_parser = subparsers.add_parser('infer', help="Runs infer_experiment.py")
+	infer_parser.add_argument('-i','--input', help='Input bam file', required=True)
+	infer_parser.add_argument('-g','--genome', help='Options are hg19/mm10', required=True)
 
 	if len(sys.argv)==1:
 		parser.print_help()
@@ -152,3 +165,5 @@ def main():
 			join_counts(conditions, args["outfile"])
 		elif args["input"]:
 			annotate_sam(args["input"], gtf, args["stranded"], args["outfile"])
+	elif args["subparser_name"] == "infer":
+		infer(args["bam"], args["genome"])
