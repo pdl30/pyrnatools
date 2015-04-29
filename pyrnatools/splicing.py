@@ -135,8 +135,11 @@ def splice_graph_prep(bam_file):
 	subprocess.call(command.split())
 	if not os.path.isdir("predictions"):
 		os.mkdir("predictions")
+	if not os.path.isdir("forms"):
+		os.mkdir("forms")
 	command2 = "predict_graphs.py {}_filt.sam -m {} -d predictions".format(ofolder, gtf)
-	print command2
+	subprocess.call(command2.split())
+	command3 = "find_splice_forms.py {}_filt.sam -m {} -d forms".format(ofolder, gtf) #Then use spliceg_to_gtf.py to get usable gene models
 	subprocess.call(command2.split())
 	os.chdir(orig_path)
 

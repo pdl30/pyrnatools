@@ -27,6 +27,14 @@ def write_deseq(ifile, sample_dict, cond1, cond2, padj):
 	rscript += "rnaseq_sig <- rnaseq_res[which(rnaseq_res$padj <= {}),]\n".format(padj)
 	rscript += "write.table(rnaseq_sig, file='{0}_vs_{1}_deseq2_significant.tsv', sep='\\t', quote=F)\n".format(cond1, cond2)
 	rscript += "write.table(rnaseq_res, file='{0}_vs_{1}_deseq2_analysis.tsv', sep='\\t', quote=F)\n".format(cond1, cond2)
+	rscript += "rld<-rlog(rnaseq_dds); rlogMat<-assay(rld); distsRL<-dist(t(assay(rld)))\n"
+	rscript += "pdf('Sample-RLD-plots.pdf'); hmcol<-colorRampPalette(brewer.pal(9,'GnBu'))(100); mat<-as.matrix(distsRL)\n"
+	rscript += "hc<-hclust(distsRL); par(cex.main=1)\n";
+	rscript += "heatmap.2(mat,Rowv=as.dendrogram(hc),symm=TRUE,trace='none',col=rev(hmcol),margin=c(13,13),main='Sample-to-sample distances',cexRow=1,cexCol=1)\n"
+	rscript += "data<-plotPCA(rld,intgroup=c('condition'),returnData=TRUE, ntop = nrow(rld)); percentVar<-round(100*attr(data,'percentVar'))\n"
+	rscript += "ggplot(data,aes(PC1, PC2,color=condition,label=condition))+geom_point(size=3)+xlab(paste0('PC1: ',percentVar[1],'\% variance'))+ylab(paste0('PC2: ',percentVar[2],'% variance')) +geom_text(colour = 'black', alpha = 0.8, size = 2)\n"
+	rscript += "dev.off()\n"
+
 	return rscript
 
 
