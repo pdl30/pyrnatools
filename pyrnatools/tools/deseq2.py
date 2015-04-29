@@ -17,6 +17,7 @@ import argparse
 def write_deseq(ifile, sample_dict, cond1, cond2, padj):
 	print "==> Running differental expression analysis...\n"
 	rscript =  "library(DESeq2)\n"
+	rscript +=  "library(RColorBrewer); library(ggplot2); library(gplots)\n"
 	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
 	#Make sure they match!
 	rscript += "counts <- read.table('{}', sep='\\t', header=T, row.names=1)\n".format(ifile)
@@ -32,7 +33,7 @@ def write_deseq(ifile, sample_dict, cond1, cond2, padj):
 	rscript += "hc<-hclust(distsRL); par(cex.main=1)\n";
 	rscript += "heatmap.2(mat,Rowv=as.dendrogram(hc),symm=TRUE,trace='none',col=rev(hmcol),margin=c(13,13),main='Sample-to-sample distances',cexRow=1,cexCol=1)\n"
 	rscript += "data<-plotPCA(rld,intgroup=c('condition'),returnData=TRUE, ntop = nrow(rld)); percentVar<-round(100*attr(data,'percentVar'))\n"
-	rscript += "ggplot(data,aes(PC1, PC2,color=condition,label=condition))+geom_point(size=3)+xlab(paste0('PC1: ',percentVar[1],'\% variance'))+ylab(paste0('PC2: ',percentVar[2],'% variance')) +geom_text(colour = 'black', alpha = 0.8, size = 2)\n"
+	rscript += "ggplot(data,aes(PC1, PC2,color=condition,label=condition))+geom_point(size=3)+xlab(paste0('PC1: ',percentVar[1],'% variance'))+ylab(paste0('PC2: ',percentVar[2],'% variance')) +geom_text(colour = 'black', alpha = 0.8, size = 2)\n"
 	rscript += "dev.off()\n"
 
 	return rscript
