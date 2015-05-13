@@ -16,6 +16,7 @@ import pysam
 import pybedtools
 import pkg_resources
 import ConfigParser
+from multiprocessing import Pool, Manager
 
 def convert_bam_bed(name, paired):
 	count = 0

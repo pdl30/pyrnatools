@@ -22,9 +22,9 @@ def create_design_for_R(idict):
 	output = open("tmp_design.txt", "w")
 	output.write("sampleName\tfileName\tcondition\n"),
 	for key in sorted(idict.keys()):
-		name = re.sub(".bam$", "", key)
-		count = re.sub(".bam$", ".count", key)
-		output.write("{}\t{}\t{}\n".format(name, count, idict[key]))
+		bam_name = os.path.basename(key)
+		name = re.sub(".bam$", "", bam_name)
+		output.write("{}\t{}\t{}\n".format(name, key, idict[key]))
 	output.close()
 
 def ConfigSectionMap(section, Config):

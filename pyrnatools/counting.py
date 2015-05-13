@@ -18,24 +18,29 @@ from pyrnatools.tools import gfold, deseq2
 from multiprocessing import Pool
 import tempfile
 
-def annotate_sam(bam_file, gtf_file, stranded, outfile=None):
+def annotate_sam(bam_file, gtf_file, stranded, outdir):
 	print "==> Counting sam file...\n"
-	if outfile:
-		htout = open(outfile, "w")
+	if bam_file.endswith(".bam"):
+		name = os.path.basename(bam)
+		count_file = re.sub(".bam$", ".count", name)
+		command = "htseq-count --stranded={} --quiet -f bam {} {} > {}/{}".format(stranded, bam_file,  gtf_file, outdir, count_file)
 	else:
-		count_file = re.sub(".bam$", ".count", bam_file)
-		htout = open(count_file,"w")
-	command = ["htseq-count", "--mode=union", "--stranded={}".format(stranded), "--quiet", "-f", "bam", bam_file,  gtf_file]
-	subprocess.call(command, stdout=htout)
+		name = os.path.basename(bam)
+		count_file = re.sub(".sam$", ".count", name) #Just in case supplied file is sam!
+		command = "htseq-count --stranded={} --quiet -f sam {} {} > {}/{}".format(stranded, bam_file,  gtf_file, outdir, count_file)
+	subprocess.call(command, shell=True)
 
-def join_counts(idict, outfile):
+def join_counts(idict, outdir):
 	data = defaultdict(list)
-	output = open(outfile, "w")
+	output = open("{}/combined_counts.tsv".format(outdir), "w")
 	output.write("ID"),
 	for bam in sorted(idict):
-		name = re.sub(".bam$", "", bam) 
+		if bam.endswith(".bam"):
+			name = re.sub(".bam$", ".count", bam) 
+		else:
+			name = re.sub(".sam$", ".count", bam) 
 		output.write("\t{}".format(bam)),
-		with open(name+".count") as f:
+		with open(name) as f:
 			for line in f:
 				line = line.rstrip()
 				word = line.split("\t")
@@ -110,7 +115,7 @@ def main():
 	htseq_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	htseq_parser.add_argument('-s','--stranded', help='Option for HTSeq, default=yes', default="yes", required=False)
 	htseq_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
-	htseq_parser.add_argument('-o','--outfile', help='Output counts file. If using config, will be matrix, else will be single output', required=False)
+	htseq_parser.add_argument('-o','--output', help='Output counts file directory, default is current directory', required=False) #Will output all counts files and combined file if specified
 	htseq_parser.add_argument('-e', action='store_true', help='Converts the GTF to UCSC format', required=False)
 
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD Count")
@@ -150,6 +155,11 @@ def main():
 		else:
 			gtf = args["gtf"]
 
+		if args["output"]:
+			output = args["output"]
+		else:
+			output = os.getcwd()
+
 		if args["config"]:
 			Config = ConfigParser.ConfigParser()
 			Config.optionxform = str
@@ -159,11 +169,11 @@ def main():
 			conditions = ConfigSectionMap("Conditions", Config)
 
 			pool = Pool(int(args["threads"]))
-			pool.map(anno_function, itertools.izip(list(conditions.keys()), itertools.repeat(gtf), itertools.repeat(args["stranded"]))) ##Running annotation in parallel
+			pool.map(anno_function, itertools.izip(list(conditions.keys()), itertools.repeat(gtf), itertools.repeat(args["stranded"]), itertools.repeat(output))) ##Running annotation in parallel
 			pool.close()
 			pool.join()	
-			join_counts(conditions, args["outfile"])
+			join_counts(conditions, output)
 		elif args["input"]:
-			annotate_sam(args["input"], gtf, args["stranded"], args["outfile"])
+			annotate_sam(args["input"], gtf, args["stranded"], output)
 	elif args["subparser_name"] == "infer":
 		infer(args["bam"], args["genome"])

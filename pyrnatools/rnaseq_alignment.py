@@ -210,3 +210,4 @@ def main():
 			paired_star(fq1, fq2, args["index"], args["threads"])
 		elif args["fastq"]:
 			single_star(fq1, args["index"], args["threads"])
+main()

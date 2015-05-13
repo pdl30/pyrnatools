@@ -173,4 +173,4 @@ def main():
 		else:
 			print "Orientation = yes"
 
-main()
+#main()
