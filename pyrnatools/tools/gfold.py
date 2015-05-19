@@ -15,9 +15,10 @@ import itertools
 import argparse
 from collections import defaultdict
 
-def run_gfold_c(bam_file, sample_dict, gtf_file):
-	count_file = re.sub(".bam$", "_gfold.count", bam_file)
-	command = "samtools view {0} | gfold count -ann {1} -tag stdin -o {2}".format(bam_file, gtf_file, count)
+def run_gfold_c(bam_file, sample_dict, gtf_file, outdir):
+	name = os.path.basename(bam_file)
+	count_file = re.sub(".bam$", "_gfold.count", name)
+	command = "samtools view {0} | gfold count -ann {1} -tag stdin -o {3}/{2}".format(bam_file, gtf_file, count, outdir)
 	subprocess.call(command, shell=True)
 
 def gfold_housekeeper(cond1, cond2):
@@ -57,12 +58,12 @@ def gfold_housekeeper(cond1, cond2):
 	output1.close()
 	output2.close()
 
-def run_gfold_diff(sample_dict, cond1, cond2, norm=False, alt=None):
+def run_gfold_diff(sample_dict, cond1, cond2, outdir, norm=False, alt=None):
 	if norm:
-		command2 = "gfold diff -s1 {0} -s2 {1} -suf _gapdh.count -o {0}_vs_{1}.diff -norm NO".format(cond1, cond2)
+		command2 = "gfold diff -s1 {0} -s2 {1} -suf _gapdh.count -o {2}/{0}_vs_{1}.diff -norm NO".format(cond1, cond2, outdir)
 	elif alt:
-		command2 = "gfold diff -s1 {0} -s2 {1} -suf {2} -o {0}_vs_{1}.diff -norm NO".format(cond1, cond2, alt)
+		command2 = "gfold diff -s1 {0} -s2 {1} -suf {2} -o {3}/{0}_vs_{1}.diff -norm NO".format(cond1, cond2, alt, outdir)
 	else:
-		command2 = "gfold diff -s1 {0} -s2 {1} -suf _gfold.count -o {0}_vs_{1}.diff".format(cond1, cond2)
+		command2 = "gfold diff -s1 {0} -s2 {1} -suf _gfold.count -o {2}/{0}_vs_{1}.diff".format(cond1, cond2, outdir)
 	print command2
 	subprocess.call(command2.split())

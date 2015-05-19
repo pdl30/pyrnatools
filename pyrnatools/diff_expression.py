@@ -58,13 +58,15 @@ def main():
 	parser = argparse.ArgumentParser(description='Differential expression for RNA-seq experiments. Runs DESEQ2 by default\n')
 	subparsers = parser.add_subparsers(help='Programs included',dest="subparser_name") #Add cuffdiff to this
 	deseq2_parser = subparsers.add_parser('deseq2', help="Runs DESEQ2")
-	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD. Use if you have no replicates!")
-	cuff_parser = subparsers.add_parser('cuff', help="Runs Cufflinks and cuffmerge")
 	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
-	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
 	deseq2_parser.add_argument('-p','--padj', help='Option for DESEQ2, default=0.05', default=0.05, required=False)
-	gfold_parser.add_argument('-a','--alt', help='Use HTseq counts faked files. Assumes normalisation is already in place. Requires a standard file extension.', required=False)
+	deseq2_parser.add_argument('-o','--output', help='Output counts file directory, default is current directory', required=False)
+
+	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD. Use if you have no replicates!")
+	gfold_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
+	gfold_parser.add_argument('-a','--alt', help='Use HTseq counts faked files. Assumes normalisation is already in place. Requires a standard file extension.', required=False)	
+	gfold_parser.add_argument('-o','--output', help='Output counts file directory, default is current directory', required=False)
 	if len(sys.argv)==1:
 		parser.print_help()
 		sys.exit(1)
@@ -75,23 +77,27 @@ def main():
 
 	#Read design matrix and create list of conditions and directories
 	conditions = ConfigSectionMap("Conditions", Config)
-	
+	if args["output"]:
+		output = args["output"]
+	else:
+		output = os.getcwd()
+
 	if args["subparser_name"] == "gfold":
 		comparisons = ConfigSectionMap("Comparisons", Config)
 		if args["alt"]:
 			for comp in comparisons:
 				c = comparisons[comp].split(",")
 				comps = [x.strip(' ') for x in c]
-				gfold.run_gfold_diff(conditions, comps[0], comps[1], alt=args["alt"])
+				gfold.run_gfold_diff(conditions, comps[0], comps[1], output, alt=args["alt"])
 		else:
 			for comp in comparisons:
 				c = comparisons[comp].split(",")
 				comps = [x.strip(' ') for x in c]
-				if args["n"]:
-					gfold.gfold_housekeeper(comps[0], comps[1])
-					gfold.run_gfold_diff(conditions, comps[0], comps[1],True)
-				else:
-					gfold.run_gfold_diff(conditions, comps[0], comps[1])
+		#		if args["n"]:
+	#				gfold.gfold_housekeeper(comps[0], comps[1])
+	#				gfold.run_gfold_diff(conditions, comps[0], comps[1],True)
+	#			else:
+				gfold.run_gfold_diff(conditions, comps[0], comps[1], output)
 
 	if args["subparser_name"] == "deseq2":
 		create_design_for_R(conditions)
@@ -99,5 +105,5 @@ def main():
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
-			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"]) ##Needs changing!!!
+			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"], output) ##Needs changing!!!
 			run_rcode(rscript, "deseq2_rcode.R")

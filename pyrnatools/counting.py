@@ -21,11 +21,11 @@ import tempfile
 def annotate_sam(bam_file, gtf_file, stranded, outdir):
 	print "==> Counting sam file...\n"
 	if bam_file.endswith(".bam"):
-		name = os.path.basename(bam)
+		name = os.path.basename(bam_file)
 		count_file = re.sub(".bam$", ".count", name)
 		command = "htseq-count --stranded={} --quiet -f bam {} {} > {}/{}".format(stranded, bam_file,  gtf_file, outdir, count_file)
 	else:
-		name = os.path.basename(bam)
+		name = os.path.basename(bam_file)
 		count_file = re.sub(".sam$", ".count", name) #Just in case supplied file is sam!
 		command = "htseq-count --stranded={} --quiet -f sam {} {} > {}/{}".format(stranded, bam_file,  gtf_file, outdir, count_file)
 	subprocess.call(command, shell=True)
@@ -124,6 +124,7 @@ def main():
 	gfold_parser.add_argument('-n',action='store_true', help='Gapdh Normlisation', required=False)
 	gfold_parser.add_argument('-g','--gtf', help='GTF file', required=False)
 	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
+	gfold_parser.add_argument('-o','--output', help='Output counts file directory, default is current directory', required=False)
 
 	infer_parser = subparsers.add_parser('infer', help="Runs infer_experiment.py")
 	infer_parser.add_argument('-i','--input', help='Input bam file', required=True)
@@ -133,7 +134,12 @@ def main():
 		parser.print_help()
 		sys.exit(1)
 	args = vars(parser.parse_args())
-
+	
+	if args["output"]:
+		output = args["output"]
+	else:
+		output = os.getcwd()
+	
 	if args["subparser_name"] == "gfold":
 		if args["config"]:
 			Config = ConfigParser.ConfigParser()
@@ -143,22 +149,17 @@ def main():
 			#Read design matrix and create list of conditions and directories
 			conditions = ConfigSectionMap("Conditions", Config)
 			pool = Pool(int(args["threads"]))
-			pool.map(run_gfold_count, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]))) ##Running annotation in parallel
+			pool.map(run_gfold_count, itertools.izip(list(conditions.keys()), itertools.repeat(args["gtf"]), itertools.repeat(output))) ##Running annotation in parallel
 			pool.close()
 			pool.join()
 		elif args["input"]:
-			gfold.run_gfold_c(args["input"], args["gtf"])
+			gfold.run_gfold_c(args["input"], args["gtf"], output)
 
 	elif args["subparser_name"] == "htseq":
 		if args["e"]:
 			gtf = convert_gtf_to_ucsc(args["gtf"])
 		else:
 			gtf = args["gtf"]
-
-		if args["output"]:
-			output = args["output"]
-		else:
-			output = os.getcwd()
 
 		if args["config"]:
 			Config = ConfigParser.ConfigParser()
