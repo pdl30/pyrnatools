@@ -36,11 +36,13 @@ def join_counts(idict, outdir):
 	output.write("ID"),
 	for bam in sorted(idict):
 		if bam.endswith(".bam"):
-			name = re.sub(".bam$", ".count", bam) 
+			name = os.path.basename(bam)
+			count_file = re.sub(".bam$", ".count", name)
 		else:
-			name = re.sub(".sam$", ".count", bam) 
+			name = os.path.basename(bam)
+			count_file = re.sub(".sam$", ".count", name)
 		output.write("\t{}".format(bam)),
-		with open(name) as f:
+		with open("{}/{}".format(outdir, count_file)) as f:
 			for line in f:
 				line = line.rstrip()
 				word = line.split("\t")

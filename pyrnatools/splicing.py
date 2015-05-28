@@ -48,14 +48,14 @@ def dexseq_prep(sample, dexseq_dir, gtf, paired, orientation):
 	count_program = os.path.join(dexseq_dir, "python_scripts/dexseq_count.py")
 	bam_name = os.path.basename(sample)
 	output = re.sub(".bam$", "_dexseq.count", bam_name)
-	output = open("count_output.txt", "a")
+	dex_out = open("count_output.txt", "a")
 	if paired:
 		p = "yes"
 	else:
 		p = "no"
 	command = "python {} -f bam -p {} -s {} {} {} {}".format(count_program, p, orientation, gtf, sample, output)
 	#python dexseq_count.py -s reverse Homo_sapiens.GRCh37.74.ucsc_dexseq.gff  /accepted_hits.bam 75K.DIF.1_1.fq.mm10.count -f bam -p yes
-	subprocess.call(command.split(), stdout=output)
+	subprocess.call(command.split(), stdout=dex_out)
 
 def create_design_for_R(idict):
 	output = open("tmp_design.txt", "w")
@@ -98,7 +98,8 @@ def mats(conditions, comp1, comp2, gtf, insert, sd, rlen, mats_program):
 	if insert:
 		command = "python {} -b1 {} -b2 {} -gtf {} -o {} -t paired -len {} -r1 {} -sd1 {} -r2 {} -sd2 {} -analysis P".format(mats_program, list1, list2, 
 			gtf, outdir, rlen, a, c, b, d)
-		subprocess.call(command.split())
+		print command
+		#subprocess.call(command.split())
 
 def reverse_dict(idict):
 	inv_map = {}
@@ -166,7 +167,7 @@ def main():
 	dexseq_parser.add_argument('-r', action='store_true', help='Will run counting instead of differential analysis', required=False)
 	dexseq_parser.add_argument('-g','--gtf', help='GTF file formatted by dexseq using deseq_prepare_annotation.py', required=True)
 	dexseq_parser.add_argument('-t','--threads', help='threads, default=1', default=1, required=False)
-	dexseq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end. Will find sd and insert size for bam files', required=False)
+	dexseq_parser.add_argument('-p', action='store_true', help='Use if samples are paired end.', required=False)
 	dexseq_parser.add_argument('-o','--orientation', help='Options are yes, no or reverse. Test First!!!', required=False)
 
 	mats_parser = subparsers.add_parser('mats', help="Runs MATS")
@@ -226,5 +227,3 @@ def main():
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
 			mats(conditions, comps[0], comps[1], args["gtf"], args["insert"], args["sd"], args["len"], mats_program)
-
-main()
