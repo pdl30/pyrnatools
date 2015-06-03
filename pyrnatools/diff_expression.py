@@ -61,6 +61,7 @@ def main():
 	deseq2_parser.add_argument('-c','--config', help='Config file containing parameters, please see documentation for usage!', required=False)
 	deseq2_parser.add_argument('-i','--input', help='Combined counts file from HTSeq or pyrna_count.py',required=True)
 	deseq2_parser.add_argument('-p','--padj', help='Option for DESEQ2, default=0.05', default=0.05, required=False)
+	deseq2_parser.add_argument('-f', action='store_true', help='Use if featureCounts used as input', required=False)
 	deseq2_parser.add_argument('-o','--output', help='Output counts file directory, default is current directory', required=False)
 
 	gfold_parser = subparsers.add_parser('gfold', help="Runs GFOLD. Use if you have no replicates!")
@@ -105,5 +106,5 @@ def main():
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
-			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"], output) ##Needs changing!!!
+			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"], args["f"], output) ##Needs changing!!!
 			run_rcode(rscript, "deseq2_rcode.R")

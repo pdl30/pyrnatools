@@ -55,7 +55,22 @@ def join_counts(idict, outdir):
 		data2 = data[key2]
 		output.write(key2+"\t" + "\t".join(data2) + "\n"),
 	output.close()
-	
+
+def featurecounts(conditions, threads, gtf_file, stranded, paired, outfile):
+	# -s  0 (unstranded), 1 (stranded) and 2 (reversely stranded). 0 by default
+	command = "featureCounts -a {} -T {} -o {}".format(gtf_file, threads, outfile)
+	command = command.split()
+	if paired:
+		command.append(" -p")
+	if stranded == "yes":
+		command.append(" -s 1")
+	elif stranded == "no":
+		command.append("-s 0")
+	elif stranded == "reverse":
+		command.append("-s 2")
+	command.extend(sorted(list(conditions.keys())))
+	subprocess.call(command)
+	#eatureCounts -p -a /home/patrick/Reference_Genomes/mm10/Ensembl/76/Mus_musculus.GRCm38.76_ucsc.gtf -o tmp.count 
 def run_gfold_count(args):
 	return gfold.run_gfold_c(*args)
 def anno_function(args):
@@ -128,6 +143,16 @@ def main():
 	gfold_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
 	gfold_parser.add_argument('-o','--output', help='Output counts file directory, default is current directory', required=False)
 
+	feat_parser = subparsers.add_parser('feat', help="Runs featureCount")
+	feat_parser.add_argument('-c','--config', help='Config file containing [Conditions] with bam files as keys and colnames as values', required=False)
+	feat_parser.add_argument('-i','--input', help='Input bam file', required=False)
+	feat_parser.add_argument('-g','--gtf', help='GTF file', required=False)
+	feat_parser.add_argument('-s','--stranded', help='Option for featueCount, default=yes', default="yes", required=False)
+	feat_parser.add_argument('-t','--threads', help='Number of threads, default=8', default=8, required=False)
+	feat_parser.add_argument('-o','--output', help='Output counts file', required=False) #Will output all counts files and combined file if specified
+	feat_parser.add_argument('-p', action='store_true', help='Samples are paired end', required=False)
+	#feat_parser.add_argument('-e', action='store_true', help='Converts the GTF to UCSC format', required=False)
+
 	infer_parser = subparsers.add_parser('infer', help="Runs infer_experiment.py")
 	infer_parser.add_argument('-i','--input', help='Input bam file', required=True)
 	infer_parser.add_argument('-g','--genome', help='Options are hg19/mm10', required=True)
@@ -156,6 +181,13 @@ def main():
 			pool.join()
 		elif args["input"]:
 			gfold.run_gfold_c(args["input"], args["gtf"], output)
+	elif args["subparser_name"] == "feat":
+		if args["config"]:
+			Config = ConfigParser.ConfigParser()
+			Config.optionxform = str
+			Config.read(args["config"])
+			conditions = ConfigSectionMap("Conditions", Config)
+			featurecounts(conditions, int(args["threads"]), args["gtf"], args["stranded"], args["p"], args["output"])
 
 	elif args["subparser_name"] == "htseq":
 		if args["e"]:
