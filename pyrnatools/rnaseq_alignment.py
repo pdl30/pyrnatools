@@ -22,7 +22,10 @@ def run_fastqc(fq1):
 
 def find_adapters(fq):
 	adapters = []
-	name = re.sub(".fastq", "", fq)
+	name = re.sub(".fastq$", "", fq)
+	name = re.sub(".fq$", "", fq)
+	command = "unzip -q {}_fastqc.zip".format(name)
+	subprocess.call(command.split())
 	report = name+"_fastqc/fastqc_data.txt"
 	flist = open(report).readlines()
 	parsing = False

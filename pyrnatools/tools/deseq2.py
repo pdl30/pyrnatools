@@ -22,7 +22,7 @@ def write_deseq(ifile, sample_dict, cond1, cond2, padj, f, outdir):
 	#Make sure they match!
 	rscript += "counts <- read.table('{}', sep='\\t', header=T, row.names=1)\n".format(ifile)
 	if f:
-		rscript += "counts <- counts[,6:dim(x)[2]]\n"
+		rscript += "counts <- counts[,6:dim(counts)[2]]\n"
 	else:
 		pass
 	rscript += "rnaseq_dds <- DESeqDataSetFromMatrix(countData = counts, colData = data.frame(pdata), design = ~ condition)\n"
