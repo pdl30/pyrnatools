@@ -66,29 +66,30 @@ def change_ens_ucsc_for_bed(name):
 ##Must include scaling!
 def genomeCoverage(name, genome, rpm=None, split=False):
 	print "==> Converting bed to bedGraph...\n"
-	inbed = pybedtools.BedTool(name+".BED")
 	if split:
 		if rpm:
-			outcov1 = inbed.genome_coverage(bg=True, strand="+", genome=genome, scale=rpm)
+			command = "genomeCoverageBed -bg -strand + -scale {} -i {} -g {} > {}".format(rpm, name+'.BED', genome, name+"_pos_rpm.bedGraph")
+			subprocess.call(command, shell=True)
+			command = "genomeCoverageBed -bg -strand - -scale {} -i {} -g {} > {}".format(rpm, name+'.BED', genome, name+"_neg_rpm.bedGraph")
+			subprocess.call(command, shell=True)
 			output1 = name+"_pos_rpm.bedGraph"
-			outcov2 = inbed.genome_coverage(bg=True, strand="-", genome=genome, scale=rpm)
 			output2 = name+"_neg_rpm.bedGraph"
 		else:
-			outcov1 = inbed.genome_coverage(bg=True, strand="+", genome=genome)
+			command = "genomeCoverageBed -bg -strand + -i {} -g {} > {}".format(name+'.BED', genome, name+"_pos.bedGraph")
+			subprocess.call(command, shell=True)
+			command = "genomeCoverageBed -bg -strand - -i {} -g {} > {}".format(name+'.BED', genome, name+"_neg.bedGraph")
+			subprocess.call(command, shell=True)
 			output1 = name+"_pos.bedGraph"
-			outcov2 = inbed.genome_coverage(bg=True, strand="-", genome=genome)
 			output2 = name+"_neg.bedGraph"
-		outcov1.saveas(output1)
-		outcov2.saveas(output2)
 		output = [output1, output2]
 	else:
 		if rpm:
-			outcov = inbed.genome_coverage(bg=True, genome=genome, scale=rpm)
+			command = "genomeCoverageBed -bg -scale {} -i {} -g {} > {}".format(rpm, name+'.BED', genome, name+"_rpm.bedGraph")
+			subprocess.call(command, shell=True)
 			output = name+"_rpm.bedGraph"
 		else:
-			outcov = inbed.genome_coverage(bg=True, genome=genome)
+			command = "genomeCoverageBed -bg -i {} -g {} > {}".format(name+'.BED', genome, name+"_rpm.bedGraph")
 			output = name+".bedGraph"
-		outcov.saveas(output)
 	return output
 
 def bedgraphtobigwig(bedgraph, chrom, split):
@@ -143,9 +144,9 @@ def main():
 			name = name+"_ucsc"
 		if args["rpm"]:
 			scale = float(1000000)/int(unique_reads)
-			bedgraph = genomeCoverage(name, args["genome"], rpm=scale, split=args["s"])	
+			bedgraph = genomeCoverage(name, chrom, rpm=scale, split=args["s"])	
 		else:
-			bedgraph = genomeCoverage(name, args["genome"], split=args["s"])	
+			bedgraph = genomeCoverage(name, chrom, split=args["s"])	
 		bedgraphtobigwig(bedgraph, chrom, args["s"])
 	
 	elif args["config"]:

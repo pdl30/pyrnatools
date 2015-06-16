@@ -221,7 +221,7 @@ def main():
 					run_rcode(rscript, "dexseq.R")
 
 	elif args["subparser_name"] == "mats":
-		mats_program = "/home/patrick/Programs/MATS.3.0.8/RNASeq-MATS.py"
+		mats_program = "/home/patrick/Programs/rMATS.3.0.9/RNASeq-MATS.py"
 		comparisons = ConfigSectionMap("Comparisons", Config)
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
