@@ -21,8 +21,8 @@ def run_fastqc(fq1):
 
 def find_adapters(fq):
 	adapters = []
-	name = re.sub(".fastq$", "", fq)
-	name = re.sub(".fq$", "", name)
+	name = re.sub(".fastq", "", fq)
+	name = re.sub(".fq", "", name)
 	fq_dir = os.path.dirname(os.path.abspath(fq))
 	command = "unzip -o -q {}_fastqc.zip -d {}".format(name, fq_dir)
 	subprocess.call(command.split())
@@ -201,11 +201,11 @@ def main():
 				name = calc_insert.run_bowtie(fq1, fq2, args["index"], fq)
 				calc_insert.sort_index(name)
 				insert = calc_insert.pysam_insert_size(name)
-				paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], int(insert[0]), int(insert[1]), args["threads"])
+				paired_tophat(fq1, fq2, args["index"], args["gtf"], args["outdir"], int(insert[0]), int(insert[1]), args["threads"])
 			else:
-				paired_tophat(fq1, fq2, args["index"], args["gtf"], args["out"], args["insert"], args["sd"], args["threads"])
+				paired_tophat(fq1, fq2, args["index"], args["gtf"], args["outdir"], args["insert"], args["sd"], args["threads"])
 		elif args["fastq"]:
-			single_tophat(fq1, args["index"], args["gtf"], args["out"], args["threads"])
+			single_tophat(fq1, args["index"], args["gtf"], args["outdir"], args["threads"])
 	elif args["subparser_name"] == "star":
 		print "==> Running STAR...\n"
 		if args["pair"]:
