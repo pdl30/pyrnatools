@@ -87,5 +87,3 @@ def main():
 		c = comparisons[comp].split(",")
 		comps = [x.strip(' ') for x in c]
 		run_cuffdiff(conditions, comps[0], comps[1], args["threads"])
-
-main()
