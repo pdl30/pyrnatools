@@ -56,7 +56,7 @@ def join_counts(idict, outdir):
 		output.write(key2+"\t" + "\t".join(data2) + "\n"),
 	output.close()
 
-def featurecounts(conditions, threads, gtf_file, stranded, paired, outfile):
+def featurecounts(conditions, threads, gtf_file, stranded, paired, outfile, bam=None):
 	# -s  0 (unstranded), 1 (stranded) and 2 (reversely stranded). 0 by default
 	command = "featureCounts -a {} -T {} -o {}".format(gtf_file, threads, outfile)
 	command = command.split()
@@ -68,7 +68,10 @@ def featurecounts(conditions, threads, gtf_file, stranded, paired, outfile):
 		command.append("-s 0")
 	elif stranded == "reverse":
 		command.append("-s 2")
-	command.extend(sorted(list(conditions.keys())))
+	if bam:
+		command.append(bam)
+	else:
+		command.extend(sorted(list(conditions.keys())))
 	subprocess.call(command)
 	#eatureCounts -p -a /home/patrick/Reference_Genomes/mm10/Ensembl/76/Mus_musculus.GRCm38.76_ucsc.gtf -o tmp.count 
 def run_gfold_count(args):
@@ -188,6 +191,8 @@ def main():
 			Config.read(args["config"])
 			conditions = ConfigSectionMap("Conditions", Config)
 			featurecounts(conditions, int(args["threads"]), args["gtf"], args["stranded"], args["p"], args["output"])
+		elif args["input"]:
+			featurecounts(None, int(args["threads"]), args["gtf"], args["stranded"], args["p"], args["output"], bam=args["input"])
 
 	elif args["subparser_name"] == "htseq":
 		if args["e"]:

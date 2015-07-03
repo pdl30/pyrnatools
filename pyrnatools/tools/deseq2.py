@@ -14,11 +14,11 @@ import ConfigParser
 import itertools
 import argparse
 
-def write_deseq(ifile, sample_dict, cond1, cond2, padj, f, outdir):
+def write_deseq(ifile, sample_dict, cond1, cond2, padj, f, outdir, tmpdesign):
 	print "==> Running differental expression analysis...\n"
-	rscript =  "library(DESeq2)\n"
-	rscript +=  "library(RColorBrewer); library(ggplot2); library(gplots)\n"
-	rscript += "pdata <- read.table('tmp_design.txt', header=T)\n"
+	rscript =  "suppressMessages(library(DESeq2))\n"
+	rscript +=  "suppressMessages(library(RColorBrewer)); suppressMessages(library(ggplot2)); suppressMessages(library(gplots))\n"
+	rscript += "pdata <- read.table('{}', header=T)\n".format(tmpdesign)
 	#Make sure they match!
 	rscript += "counts <- read.table('{}', sep='\\t', header=T, row.names=1)\n".format(ifile)
 	if f:

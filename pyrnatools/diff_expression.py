@@ -17,15 +17,17 @@ from collections import defaultdict
 from pyrnatools.tools import gfold, deseq2
 from multiprocessing import Pool
 import pysam
+import tempfile
 
 def create_design_for_R(idict):
-	output = open("tmp_design.txt", "w")
+	output = tempfile.NamedTemporaryFile(delete = False)
 	output.write("sampleName\tfileName\tcondition\n"),
 	for key in sorted(idict.keys()):
 		bam_name = os.path.basename(key)
 		name = re.sub(".bam$", "", bam_name)
 		output.write("{}\t{}\t{}\n".format(name, key, idict[key]))
 	output.close()
+	return output.name
 
 def ConfigSectionMap(section, Config):
 	dict1 = {}
@@ -40,14 +42,14 @@ def ConfigSectionMap(section, Config):
 			dict1[option] = None
 	return dict1
 
-def run_rcode(rscript, name):
-	rcode = open(name, "w")
+def run_rcode(rscript):
+	rcode = tempfile.NamedTemporaryFile(delete = False)
 	rcode.write(rscript)
 	rcode.close()
 	try:
-		subprocess.call(['Rscript', name])
+		subprocess.call(['Rscript', rcode.name])
 	except:
-		error("Error in running {}\n".format(name))
+		error("Error in running R script\n")
 		error("Error: %s\n" % str(sys.exc_info()[1]))
 		error( "[Exception type: %s, raised in %s:%d]\n" % ( sys.exc_info()[1].__class__.__name__, 
 		os.path.basename(traceback.extract_tb( sys.exc_info()[2] )[-1][0]), 
@@ -101,10 +103,10 @@ def main():
 				gfold.run_gfold_diff(conditions, comps[0], comps[1], output)
 
 	if args["subparser_name"] == "deseq2":
-		create_design_for_R(conditions)
+		design = create_design_for_R(conditions)
 		comparisons = ConfigSectionMap("Comparisons", Config)
 		for comp in comparisons:
 			c = comparisons[comp].split(",")
 			comps = [x.strip(' ') for x in c]
-			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"], args["f"], output) ##Needs changing!!!
-			run_rcode(rscript, "deseq2_rcode.R")
+			rscript = deseq2.write_deseq(args["input"], conditions, comps[0], comps[1], args["padj"], args["f"], output, design) ##Needs changing!!!
+			run_rcode(rscript)
