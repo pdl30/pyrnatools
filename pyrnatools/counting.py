@@ -117,11 +117,13 @@ def convert_gtf_to_ucsc(igtf):
 	return a.name
 
 def infer(bam, genome):
-	path1 = "/home/USSR/pdl30/References/"
-	refbed = pkg_resources.resource_filename('pyrnatools', 'data/{}_Ensembl.bed'.format(args["genome"]))
+	path1 = "/home/patrick/Reference_Genomes/pyngspipe_references/"
+	if genome == "hg19":
+		refbed = path1 + "hg19/hg19_Ensembl.bed"
+	elif genome == "mm10":
+		refbed = path1 + "mm10/mm10_Ensembl.bed"
 	infercommand = "infer_experiment.py -i {} -r {} > infer_res.txt".format(bam, refbed)
 	subprocess.call(infercommand, shell=True)
-
 
 def main():
 	parser = argparse.ArgumentParser(description='Counts features from BAM files\n')
