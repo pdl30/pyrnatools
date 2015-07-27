@@ -15,18 +15,17 @@ import os, sys
 from pyrnatools import calc_insert
 import math
 
-def run_fastqc(fq1):
-	command = ["fastqc", "-q", "{}".format(fq1)] #outdir must exist!
-	subprocess.call(command)
+def run_fastqc(fq1, outdir):
+	command = "fastqc -q {} -o {}".format(fq1, outdir) 
+	subprocess.call(command.split())
 
-def find_adapters(fq):
+def find_adapters(fq, outdir):
 	adapters = []
 	name = re.sub(".fastq", "", fq)
-	name = re.sub(".fq", "", name)
-	fq_dir = os.path.dirname(os.path.abspath(fq))
-	command = "unzip -o -q {}_fastqc.zip -d {}".format(name, fq_dir)
+	name = os.path.basename(name)
+	command = "unzip -o -q {}/{}_fastqc.zip -d {}".format(outdir, name, outdir)
 	subprocess.call(command.split())
-	report = name+"_fastqc/fastqc_data.txt"
+	report = "{}/{}_fastqc/fastqc_data.txt".format(outdir, name)
 	flist = open(report).readlines()
 	parsing = False
 	for line in flist:
@@ -162,10 +161,10 @@ def main():
 		fq1 = args["pair"][0]
 		fq2 = args["pair"][1]
 		print "==> Running FastQC...\n"
-		run_fastqc(fq1)
-		run_fastqc(fq2)
-		fwd_adapt = find_adapters(fq1)
-		rev_adapt = find_adapters(fq2)
+		run_fastqc(fq1, args["outdir"])
+		run_fastqc(fq2, args["outdir"])
+		fwd_adapt = find_adapters(fq1, args["outdir"])
+		rev_adapt = find_adapters(fq2, args["outdir"])
 		if fwd_adapt or rev_adapt:
 			print "==> Removing adapters...\n"
 			cut_adapters(True, fwd_adapt, fq1, args["outdir"], fq2=fq2, rev_adapters=rev_adapt)
@@ -180,8 +179,8 @@ def main():
 	else:
 		fq1 = args["fastq"]
 		print "==> Running FastQC...\n"
-		run_fastqc(fq1)
-		adapt = find_adapters(fq1)
+		run_fastqc(fq1, args["outdir"])
+		adapt = find_adapters(fq1, args["outdir"])
 		if adapt:
 			print "==> Removing adapters...\n"
 			cut_adapters(False, adapt, fq1, args["outdir"])
