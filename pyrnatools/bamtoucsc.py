@@ -18,19 +18,19 @@ import pkg_resources
 import ConfigParser
 from multiprocessing import Pool, Manager
 
-def convert_bam_bed(name, paired):
+def convert_bam_bed(bam, name, paired, outdir):
 	count = 0
 	print "==> Converting bam to bed...\n"
 #	if aligner=="T":
-	outbam = open(name+".unique.bam", "wb")
-	filtered_bam = pysam.view( "-bq 50", name+".bam") ##Filters for uniquely aligned reads!
+	outbam = open("{}/{}.unique.bam".format(outdir, name), "wb")
+	filtered_bam = pysam.view( "-bq 50", bam) ##Filters for uniquely aligned reads!
 	for read in filtered_bam:
 		count += 1 
 		outbam.write(read)
 
-	inbam = pybedtools.BedTool(name+".unique.bam")
+	inbam = pybedtools.BedTool("{}/{}.unique.bam".format(outdir, name))
 	bed = inbam.bam_to_bed(split=True)
-	bed.saveas(name+".BED")
+	bed.saveas("{}/{}.BED".format(outdir, name))
 	#STAR conversion
 	#elif aligner=="S":
 #		samfile = pysam.Samfile(name+".bam", "rb")
@@ -44,10 +44,10 @@ def convert_bam_bed(name, paired):
 		count /= 2
 	return count
 
-def change_ens_ucsc_for_bed(name):
-	outbed2 = open(name+"_ucsc.BED", "w")
+def change_ens_ucsc_for_bed(name, outdir):
+	outbed2 = open("{}/{}_ucsc.BED".format(outdir, name), "w")
 	print "==> Converting Ensembl to UCSC chromosomes...\n"
-	with open(name+".BED") as f:
+	with open("{}/{}.BED".format(outdir, name)) as f:
 		for line in f:
 			line = line.rstrip()
 			word = line.split("\t")
@@ -62,34 +62,35 @@ def change_ens_ucsc_for_bed(name):
 			else:
 				pass
 			outbed2.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(new_chr, word[1], word[2], word[3], word[4], word[5])),
+	outbed2.close()
 
 ##Must include scaling!
-def genomeCoverage(name, genome, rpm=None, split=False):
+def genomeCoverage(name, genome, outdir, rpm=None, split=False):
 	print "==> Converting bed to bedGraph...\n"
 	if split:
 		if rpm:
-			command = "genomeCoverageBed -bg -strand + -scale {} -i {} -g {} > {}".format(rpm, name+'.BED', genome, name+"_pos_rpm.bedGraph")
+			command = "genomeCoverageBed -bg -strand + -scale {} -i {}/{}.BED -g {} > {}/{}_pos_rpm.bedGraph".format(rpm, outdir, name, genome, outdir, name)
 			subprocess.call(command, shell=True)
-			command = "genomeCoverageBed -bg -strand - -scale {} -i {} -g {} > {}".format(rpm, name+'.BED', genome, name+"_neg_rpm.bedGraph")
+			command = "genomeCoverageBed -bg -strand - -scale {} -i {}/{}.BED -g {} > {}/{}_neg_rpm.bedGraph".format(rpm, outdir, name, genome, outdir, name)
 			subprocess.call(command, shell=True)
-			output1 = name+"_pos_rpm.bedGraph"
-			output2 = name+"_neg_rpm.bedGraph"
+			output1 = "{}/{}_pos_rpm.bedGraph".format(outdir, name)
+			output2 = "{}/{}_neg_rpm.bedGraph".format(outdir, name)
 		else:
-			command = "genomeCoverageBed -bg -strand + -i {} -g {} > {}".format(name+'.BED', genome, name+"_pos.bedGraph")
+			command = "genomeCoverageBed -bg -strand + -i {}/{}.BED -g {} > {}/{}_pos.bedGraph".format(outdir, name, genome, outdir, name)
 			subprocess.call(command, shell=True)
-			command = "genomeCoverageBed -bg -strand - -i {} -g {} > {}".format(name+'.BED', genome, name+"_neg.bedGraph")
+			command = "genomeCoverageBed -bg -strand - -i {}/{}.BED -g {} > {}/{}_neg.bedGraph".format(outdir, name, genome, outdir, name)
 			subprocess.call(command, shell=True)
-			output1 = name+"_pos.bedGraph"
-			output2 = name+"_neg.bedGraph"
+			output1 = "{}/{}_pos.bedGraph".format(outdir, name)
+			output2 = "{}/{}_neg.bedGraph".format(outdir, name)
 		output = [output1, output2]
 	else:
 		if rpm:
-			command = "genomeCoverageBed -bg -scale {} -i {} -g {} > {}".format(rpm, name+'.BED', genome, name+"_rpm.bedGraph")
+			command = "genomeCoverageBed -bg -scale {} -i {}/{}.BED -g {} > {}/{}_rpm.bedGraph".format(rpm, outdir, name, genome, outdir, name)
 			subprocess.call(command, shell=True)
-			output = name+"_rpm.bedGraph"
+			output = "{}/{}_rpm.bedGraph".format(outdir, name)
 		else:
-			command = "genomeCoverageBed -bg -i {} -g {} > {}".format(name+'.BED', genome, name+"_rpm.bedGraph")
-			output = name+".bedGraph"
+			command = "genomeCoverageBed -bg -i {} -g {}/{}.BED > {}/{}_rpm.bedGraph".format(outdir, name, genome, outdir, name)
+			output = "{}/{}.bedGraph".format(outdir, name)
 	return output
 
 def bedgraphtobigwig(bedgraph, chrom, split):
@@ -126,6 +127,7 @@ def main():
 	parser.add_argument('-s', action='store_true', help='Split tracks by strand', required=False) 
 	parser.add_argument('-rpm', action='store_true', help='Scale to RPM', required=False) 
 	parser.add_argument('-ens', action='store_true', help='If samples are aligned to ensembl genome, convert to UCSC coordinates', required=False) 
+	parser.add_argument('-o', '--outdir', help='Output directory', required=True)
 	if len(sys.argv)==1:
 		parser.print_help()
 		sys.exit(1)
@@ -135,18 +137,19 @@ def main():
 	if not os.path.isfile(chrom):
 		raise Exception("Unsupported Genome!")
 	
-	if args["input"]:
-		name = re.sub(".bam$", "", args["input"])
-		unique_reads = convert_bam_bed(name, args["p"])
+	if args["input"]:#
+		name = os.path.basename(args["input"])
+		name = re.sub(".bam$", "", name)
+		unique_reads = convert_bam_bed(args["input"], name, args["p"], args["outdir"])
 
 		if args["ens"]:
-			change_ens_ucsc_for_bed(name)
+			change_ens_ucsc_for_bed(name, args["outdir"])
 			name = name+"_ucsc"
 		if args["rpm"]:
 			scale = float(1000000)/int(unique_reads)
-			bedgraph = genomeCoverage(name, chrom, rpm=scale, split=args["s"])	
+			bedgraph = genomeCoverage(name, chrom, args["outdir"], rpm=scale, split=args["s"])	
 		else:
-			bedgraph = genomeCoverage(name, chrom, split=args["s"])	
+			bedgraph = genomeCoverage(name, chrom, args["outdir"], split=args["s"])	
 		bedgraphtobigwig(bedgraph, chrom, args["s"])
 	
 	elif args["config"]:
@@ -157,16 +160,17 @@ def main():
 		conditions = ConfigSectionMap("Conditions", Config)
 		
 		for key in conditions:
-			name = re.sub(".bam$", "", key)
-			unique_reads = convert_bam_bed(name, args["p"])
+			name = os.path.basename(args["input"])
+			name = re.sub(".bam$", "", name)
+			unique_reads = convert_bam_bed(bam, name, args["p"], args["outdir"])
 			
 			if args["ens"]:
-				change_ens_ucsc_for_bed(name)
+				change_ens_ucsc_for_bed(name, args["outdir"])
 				name = name+"_ucsc"
 			if args["rpm"]:
 				scale = float(1000000)/int(unique_reads)
-				bedgraph = genomeCoverage(name, args["genome"], rpm=scale, split=args["s"])	
+				bedgraph = genomeCoverage(name, args["genome"], args["outdir"], rpm=scale, split=args["s"])	
 			else:
-				bedgraph = genomeCoverage(name, args["genome"], split=args["s"])	
+				bedgraph = genomeCoverage(name, args["genome"], args["outdir"], split=args["s"])	
 			bedgraphtobigwig(bedgraph, chrom, args["s"])
 	
