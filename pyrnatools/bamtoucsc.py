@@ -89,7 +89,8 @@ def genomeCoverage(name, genome, outdir, rpm=None, split=False):
 			subprocess.call(command, shell=True)
 			output = "{}/{}_rpm.bedGraph".format(outdir, name)
 		else:
-			command = "genomeCoverageBed -bg -i {} -g {}/{}.BED > {}/{}_rpm.bedGraph".format(outdir, name, genome, outdir, name)
+			command = "genomeCoverageBed -bg -i {}/{}.BED -g {} > {}/{}.bedGraph".format(outdir, name, genome, outdir, name)
+			subprocess.call(command, shell=True)
 			output = "{}/{}.bedGraph".format(outdir, name)
 	return output
 
@@ -140,6 +141,7 @@ def main():
 	if args["input"]:#
 		name = os.path.basename(args["input"])
 		name = re.sub(".bam$", "", name)
+
 		unique_reads = convert_bam_bed(args["input"], name, args["p"], args["outdir"])
 
 		if args["ens"]:
@@ -151,6 +153,7 @@ def main():
 		else:
 			bedgraph = genomeCoverage(name, chrom, args["outdir"], split=args["s"])	
 		bedgraphtobigwig(bedgraph, chrom, args["s"])
+
 	
 	elif args["config"]:
 		Config = ConfigParser.ConfigParser()
