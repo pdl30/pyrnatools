@@ -139,6 +139,7 @@ def main():
 	tophat_parser.add_argument('-b', '--sd', help='Insert size SD for paried end, default=20', default=20, required=False)
 	tophat_parser.add_argument('-t', '--threads', help='Number of threads', default=1, required=False)
 	tophat_parser.add_argument('-c', help='Will find sd and insert automatically', action='store_true', required=False)
+	tophat_parser.add_argument('-n', help='Will skip FastQC', action='store_true', required=False)
 	tophat_parser.add_argument('-o', '--outdir', help='Name of results directory', required=True)
 
 	star_parser.add_argument('-f', '--fastq', help='Single end fastq', required=False)
@@ -160,35 +161,39 @@ def main():
 	if args["pair"]:
 		fq1 = args["pair"][0]
 		fq2 = args["pair"][1]
-		print "==> Running FastQC...\n"
-		run_fastqc(fq1, args["outdir"])
-		run_fastqc(fq2, args["outdir"])
-		fwd_adapt = find_adapters(fq1, args["outdir"])
-		rev_adapt = find_adapters(fq2, args["outdir"])
-		if fwd_adapt or rev_adapt:
-			print "==> Removing adapters...\n"
-			cut_adapters(True, fwd_adapt, fq1, args["outdir"], fq2=fq2, rev_adapters=rev_adapt)
-			fq1 = args["outdir"]+"/trimmed_1.fastq" 
-			fq2 = args["outdir"]+"/trimmed_2.fastq"
-			fq1 = os.path.abspath(fq1)
-			fq2 = os.path.abspath(fq2)
-		else:
-			fq1 = os.path.abspath(fq1)
-			fq2 = os.path.abspath(fq2)
-
 	else:
 		fq1 = args["fastq"]
-		print "==> Running FastQC...\n"
-		run_fastqc(fq1, args["outdir"])
-		adapt = find_adapters(fq1, args["outdir"])
-		if adapt:
-			print "==> Removing adapters...\n"
-			cut_adapters(False, adapt, fq1, args["outdir"])
-			fq1 = args["outdir"]+"/trimmed.fastq" 
-			fq1 = os.path.abspath(fq1)
+		
+	if not args["n"]:
+		if args["pair"]:
+			print "==> Running FastQC...\n"
+			run_fastqc(fq1, args["outdir"])
+			run_fastqc(fq2, args["outdir"])
+			fwd_adapt = find_adapters(fq1, args["outdir"])
+			rev_adapt = find_adapters(fq2, args["outdir"])
+			if fwd_adapt or rev_adapt:
+				print "==> Removing adapters...\n"
+				cut_adapters(True, fwd_adapt, fq1, args["outdir"], fq2=fq2, rev_adapters=rev_adapt)
+				fq1 = args["outdir"]+"/trimmed_1.fastq" 
+				fq2 = args["outdir"]+"/trimmed_2.fastq"
+				fq1 = os.path.abspath(fq1)
+				fq2 = os.path.abspath(fq2)
+			else:
+				fq1 = os.path.abspath(fq1)
+				fq2 = os.path.abspath(fq2)
+
 		else:
-		#	subprocess.call("mv {} {}".format(fq1, args["out"]), shell=True) #This shouldn't be done. 
-			fq1 = os.path.abspath(fq1)
+			print "==> Running FastQC...\n"
+			run_fastqc(fq1, args["outdir"])
+			adapt = find_adapters(fq1, args["outdir"])
+			if adapt:
+				print "==> Removing adapters...\n"
+				cut_adapters(False, adapt, fq1, args["outdir"])
+				fq1 = args["outdir"]+"/trimmed.fastq" 
+				fq1 = os.path.abspath(fq1)
+			else:
+			#	subprocess.call("mv {} {}".format(fq1, args["out"]), shell=True) #This shouldn't be done. 
+				fq1 = os.path.abspath(fq1)
 
 	if args["subparser_name"] == "tophat":
 		print "==> Running Tophat...\n"

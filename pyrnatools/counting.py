@@ -72,6 +72,7 @@ def featurecounts(conditions, threads, gtf_file, stranded, paired, outfile, bam=
 		command.append(bam)
 	else:
 		command.extend(sorted(list(conditions.keys())))
+	print command
 	subprocess.call(command)
 	#eatureCounts -p -a /home/patrick/Reference_Genomes/mm10/Ensembl/76/Mus_musculus.GRCm38.76_ucsc.gtf -o tmp.count 
 def run_gfold_count(args):
