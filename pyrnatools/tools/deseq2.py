@@ -30,6 +30,9 @@ def write_deseq(ifile, sample_dict, cond1, cond2, padj, f, outdir, tmpdesign):
 	rscript += "rnaseq_dds <- DESeq(rnaseq_dds)\n"	
 	rscript += "rnaseq_res <- results(rnaseq_dds, contrast=c('condition','{0}','{1}'))\n".format(cond1, cond2)
 	rscript += "rnaseq_sig <- rnaseq_res[which(rnaseq_res$padj <= {}),]\n".format(padj)
+	rscript += "norm_counts <- counts(rnaseq_dds, normalized=TRUE)\n"
+	rscript += "rownames(norm_counts) <- rownames(counts); colnames(norm_counts) <- colnames(counts)\n"
+	rscript += "write.table(norm_counts, file='{2}/deseq2_counts.tsv', sep='\\t', quote=F)\n".format(cond1, cond2, outdir)
 	rscript += "write.table(rnaseq_sig, file='{2}/{0}_vs_{1}_deseq2_significant.tsv', sep='\\t', quote=F)\n".format(cond1, cond2, outdir)
 	rscript += "write.table(rnaseq_res, file='{2}/{0}_vs_{1}_deseq2_analysis.tsv', sep='\\t', quote=F)\n".format(cond1, cond2, outdir)
 	rscript += "rld<-rlog(rnaseq_dds); colnames(rld) <- pdata$sampleName; rlogMat<-assay(rld); distsRL<-dist(t(assay(rld)))\n"

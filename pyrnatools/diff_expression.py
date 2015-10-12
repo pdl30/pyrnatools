@@ -46,6 +46,7 @@ def run_rcode(rscript):
 	rcode = tempfile.NamedTemporaryFile(delete = False)
 	rcode.write(rscript)
 	rcode.close()
+	print rcode.name
 	try:
 		subprocess.call(['Rscript', rcode.name])
 	except:
